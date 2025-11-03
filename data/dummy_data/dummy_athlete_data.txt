@@ -1,0 +1,8 @@
+ATH-001, 100m, 10.54s
+ATH-001, 200m, 21.30s
+ATH-002, Javelin, 65.2m
+ATH-003, 1500m, 3:55.20
+ATH-003, 5000m, 14:45.10
+ATH-004, 400m, 48.90s
+ATH-004, 4x400m Relay, 47.5s (split)
+ATH-005, High Jump, 2.10m
