@@ -1,14 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import pandas as pd
-import time
+import json
+from . import llm_strategy 
 
 # ---------------------------------------------------------------------------- #
 #                                Pydantic Model                                #
 # ---------------------------------------------------------------------------- #
 class RosterRequest(BaseModel):
     meet_context: str
-    athlete_data: str
+    athlete_data: str 
+
 # ---------------------------------------------------------------------------- #
 #                                   Init API                                   #
 # ---------------------------------------------------------------------------- #
@@ -17,43 +18,28 @@ app = FastAPI(
     description="API for generating optimal track rosters using LLM logic."
 )
 # ---------------------------------------------------------------------------- #
-#                          Backend Logic (Placeholder)                         #
+#                          Backend Logic (Validation)                          #
 # ---------------------------------------------------------------------------- #
-def process_and_validate_data(athlete_data_text: str) -> bool:
+def process_and_validate_data(athlete_data_text: str) -> (dict, str):
     """
-    Placeholder to process the raw text data.
+    Tries to parse the JSON string and validate its basic structure.
+    This version validates the new "event-first" data structure.
     """
-    if athlete_data_text and len(athlete_data_text) > 5:
-        return True
-    return False
-
-def generate_roster_logic(athlete_data: str, meet_context: str) -> (dict, str):
-    """
-    Placeholder for the core LLM call.
-    This function takes the processed data and context,
-    sends to the LLM, and gets the results.
-    """
-    # Simulate a delay
-    time.sleep(2) 
-    
-    # Dummy response for MVP
-    suggested_roster = {
-        'Athlete ID': ['ATH-001', 'ATH-002', 'ATH-001', 'ATH-003'],
-        'Event': ['100m Dash', 'Javelin Throw', '4x100m Relay', '1500m Run'],
-        'Predicted Points': [10, 8, 6, 5]
-    }
-    # Convert DataFrame to a dict (JSON serializable)
-    roster_dict = pd.DataFrame(suggested_roster).to_dict(orient='records')
-
-    reasoning = """
-    **Reasoning for Roster Decisions (from API):**
-
-    1.  **ATH-001 in 100m Dash:** Based on historical times, ATH-001 is the fastest sprinter on the team and is projected to win the event, securing a maximum of 10 points.
-    2.  **ATH-002 in Javelin Throw:** This athlete shows strong, consistent performance in Javelin, with a high probability of placing second against the known competitors.
-    3.  **ATH-001 in 4x100m Relay:** Placing our top sprinter as the anchor leg in the relay maximizes our chances for a top-three finish, considering the speed of the other teams.
-    4.  **ATH-003 in 1500m Run:** While not the top seed, historical data suggests ATH-003 has strong endurance and can likely secure a 4th place finish, adding crucial points.
-    """
-    return roster_dict, reasoning
+    try:
+        data = json.loads(athlete_data_text) 
+        
+        # Check if it's a dictionary and not empty
+        if not isinstance(data, dict) or not data:
+            return None, "Invalid JSON: Data must be a non-empty JSON object (e.g., {'100m': [...]})."
+        
+        # Check if at least one key has a list of performances
+        if not any(isinstance(v, list) and len(v) > 0 for v in data.values()):
+             return None, "Invalid JSON: Data must contain at least one event (e.g., '100m') with a list of performances."
+        return data, None
+    except json.JSONDecodeError:
+        return None, "Invalid input: Data is not valid JSON. Check your pasted data."
+    except Exception as e:
+        return None, f"An unexpected error occurred during validation: {e}"
 
 # ---------------------------------------------------------------------------- #
 #                                 API Endpoint                                 #
@@ -61,18 +47,26 @@ def generate_roster_logic(athlete_data: str, meet_context: str) -> (dict, str):
 @app.post("/generate_roster")
 async def generate_roster_endpoint(request: RosterRequest):
     """
-    This endpoint receives meet context and athlete data,
-    validates it, and returns a generated roster with reasoning.
+    This endpoint receives meet context and athlete data (as a JSON string),
+    validates it, and returns a generated roster with reasoning from an LLM.
     """
-    # Validate input
-    is_valid = process_and_validate_data(request.athlete_data)
-    if not is_valid:
-        return {"error": "Invalid athlete data. Please provide more data."}, 400
+    # Validate and parse the input data
+    parsed_data, error = process_and_validate_data(request.athlete_data)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
 
-    # Call the core logic
-    roster, reasoning = generate_roster_logic(request.athlete_data, request.meet_context)
+    # Call the core logic from the strategy module
+    roster, reasoning = await llm_strategy.generate_roster_strategy(
+        athlete_data=parsed_data,
+        meet_context=request.meet_context,
+        provider="gemini" 
+    )
 
-    # Return the successful response
+    # Handle errors from the LLM
+    if roster is None:
+        raise HTTPException(status_code=500, detail=reasoning)
+
+    # Return the successful response as a single JSON object
     return {
         "roster": roster,
         "reasoning": reasoning
