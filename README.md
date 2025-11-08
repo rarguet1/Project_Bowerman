@@ -43,7 +43,12 @@ This will automatically open the Streamlit application in your web browser.
 - The Streamlit app will send this data to your local FastAPI backend, wait for the response, and then display the results.
 
 ## 5. Screenshots
+# Data input
+Input data is gratiously provided UMBC_f_performances.json.
 ![alt text](image.png)
+# Example context input
 ![alt text](image-1.png)
+# Reasoning output example
 ![alt text](image-2.png)
+# Roster output example
 ![alt text](image-3.png)
