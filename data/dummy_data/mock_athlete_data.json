@@ -1,0 +1,110 @@
+{
+  "teamName": "UMBC Retrievers",
+  "athletes": [
+    {
+      "athlete_id": "ATH-101",
+      "name": "David Sprint",
+      "specialties": ["100m", "200m"],
+      "performances": [
+        {
+          "event": "100m",
+          "time_seconds": 10.45,
+          "date": "2025-04-12",
+          "meet_name": "Spring Opener",
+          "conditions": { "wind_mps": 1.5, "weather": "Sunny" }
+        },
+        {
+          "event": "100m",
+          "time_seconds": 10.51,
+          "date": "2025-04-19",
+          "meet_name": "Rivalry Meet",
+          "conditions": { "wind_mps": 0.5, "weather": "Cool" }
+        },
+        {
+          "event": "200m",
+          "time_seconds": 21.02,
+          "date": "2025-04-19",
+          "meet_name": "Rivalry Meet",
+          "conditions": { "wind_mps": 0.8, "weather": "Cool" }
+        }
+      ]
+    },
+    {
+      "athlete_id": "ATH-102",
+      "name": "Marcus Longsprint",
+      "specialties": ["200m", "400m"],
+      "performances": [
+        {
+          "event": "200m",
+          "time_seconds": 21.15,
+          "date": "2025-04-12",
+          "meet_name": "Spring Opener",
+          "conditions": { "wind_mps": 1.2, "weather": "Sunny" }
+        },
+        {
+          "event": "400m",
+          "time_seconds": 47.55,
+          "date": "2025-04-12",
+          "meet_name": "Spring Opener",
+          "conditions": { "wind_mps": "n/a", "weather": "Sunny" }
+        },
+        {
+          "event": "400m",
+          "time_seconds": 47.21,
+          "date": "2025-04-19",
+          "meet_name": "Rivalry Meet",
+          "conditions": { "wind_mps": "n/a", "weather": "Cool" }
+        }
+      ]
+    },
+    {
+      "athlete_id": "ATH-103",
+      "name": "Chris Runner",
+      "specialties": ["100m", "200m", "400m"],
+      "performances": [
+        {
+          "event": "100m",
+          "time_seconds": 10.60,
+          "date": "2025-04-19",
+          "meet_name": "Rivalry Meet",
+          "conditions": { "wind_mps": 0.5, "weather": "Cool" }
+        },
+        {
+          "event": "200m",
+          "time_seconds": 21.40,
+          "date": "2025-04-19",
+          "meet_name": "Rivalry Meet",
+          "conditions": { "wind_mps": 0.8, "weather": "Cool" }
+        },
+        {
+          "event": "400m",
+          "time_seconds": 48.10,
+          "date": "2025-04-12",
+          "meet_name": "Spring Opener",
+          "conditions": { "wind_mps": "n/a", "weather": "Sunny" }
+        }
+      ]
+    },
+    {
+      "athlete_id": "ATH-104",
+      "name": "Leo Quartermile",
+      "specialties": ["400m"],
+      "performances": [
+        {
+          "event": "400m",
+          "time_seconds": 47.30,
+          "date": "2025-04-12",
+          "meet_name": "Spring Opener",
+          "conditions": { "wind_mps": "n/a", "weather": "Sunny" }
+        },
+        {
+          "event": "400m",
+          "time_seconds": 47.90,
+          "date": "2025-04-19",
+          "meet_name": "Rivalry Meet",
+          "conditions": { "wind_mps": "n/a", "weather": "Slight Rain" }
+        }
+      ]
+    }
+  ]
+}
