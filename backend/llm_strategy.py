@@ -43,6 +43,7 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (
     Generates a roster strategy using Google's Gemini.
     This prompt is now tailored to the "event-first" JSON data.
     """
+    response = None
     
     # PROMPT for TFRRS-style data
     system_instruction_text = f"""
@@ -59,27 +60,30 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (
 
     *** YOUR TASK ***
     Analyze the provided athlete JSON data (which is grouped by *event*) and the meet context.
-    Identify the top athletes and their specialties. Note that the same athlete (e.g., "Creel, Anna") may appear in multiple event lists.
+    You are acting as the coach for your collegiate track team. Your job is to enter your athletes in events to maximize team points scored.
+    Identify the best combination of athletes per and across events based on speed and possible fatigue after multiple events. 
+    Consider everyone's season performances including your athletes and opposing athletes in the conference.
+    Note that the same athlete may appear in multiple event lists.
     YOUR OUTPUT MUST BE A SINGLE, VALID JSON OBJECT with TWO keys:
 
     1.  "reasoning": A markdown-formatted string. Explain your high-level 
         strategy. Justify your decisions, especially for athletes competing in multiple events (max 4).
     2.  "roster": A list of JSON objects. Each object must have keys:
-        "Athlete Name", "Event", and "Notes".
+        "Athlete Name", "Event(s)", and "Notes".
         (Use the "text" field from the data for "Athlete Name").
 
     *** SCORING/RULES ***
     - Scoring: 10-8-6-5-4-3-2-1
-    - Max 2 scorers per team per event.
-    - Max 4 events per athlete (including relays if you suggest them).
+    - Max 4 events per athlete 
 
     *** STRICT EXAMPLE OF YOUR FINAL OUTPUT ***
     {{
       "reasoning": "**Strategy Analysis:**\n* Genelle Stephens is a key athlete in both the 200m and 400mh.\n* We have strong depth in the 400m with McDonald, Stephens, and Sibblies.",
       "roster": [
-        {{"Athlete Name": "Parsons, Za'Kayza", "Event": "100m", "Notes": "Top seed, expected 10 points."}},
-        {{"Athlete Name": "Stephens, Genelle", "Event": "400mh", "Notes": "Clear favorite. Expected 10 points."}},
-        {{"Athlete Name": "Stephens, Genelle", "Event": "200m", "Notes": "Strong second event."}}
+        {{"Athlete Name": "LastName1, FirstName1", "Event(s)": "100m", "Notes": "Top seed, expected 10 points."}},
+        {{"Athlete Name": "LastName1, FirstName1", "Event(s)": "200m", "Notes": "Top seed, expected 10 points."}},
+        {{"Athlete Name": "LastName2, FirstName2", "Event(s)": "400m", "Notes": "Second best, but entered to prevent fatigue for FirstName1"}},
+        {{"Athlete Name": "LastName3, FirstName3", "Event(s)": "200m", "Notes": "Strong second event."}}
       ]
     }}
     """
