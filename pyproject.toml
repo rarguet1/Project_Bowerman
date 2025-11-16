@@ -7,6 +7,8 @@ requires-python = ">=3.9"
 dependencies = [
     "fastapi>=0.120.4",
     "google-genai>=1.47.0",
+    "mistral>=20.1.0",
+    "mistralai>=1.9.11",
     "pandas>=2.3.3",
     "pydantic>=2.12.3",
     "python-dotenv>=1.2.1",
