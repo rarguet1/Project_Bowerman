@@ -116,20 +116,3 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (
         error_msg = f"Error calling Gemini API: {e}\n\nRaw Response: {getattr(response, 'text', 'No response')}"
         print(error_msg)
         return None, error_msg
-
-
-def _get_placeholder_recommendation() -> (dict, str):
-    """
-    Your original dummy logic for testing the API pipes.
-    """
-    time.sleep(1) # Simulate a delay
-    suggested_roster = {
-        'Athlete ID': ['ATH-001', 'ATH-002', 'ATH-001', 'ATH-003'],
-        'Athlete Name': ['Test User 1', 'Test User 2', 'Test User 1', 'Test User 3'],
-        'Event': ['100m Dash', 'Javelin Throw', '4x100m Relay', '1500m Run'],
-        'Notes': ['Placeholder note 1', 'Placeholder note 2', 'Placeholder note 3', 'Placeholder note 4']
-    }
-    roster_dict = pd.DataFrame(suggested_roster).to_dict(orient='records')
-    reasoning = "**Placeholder Reasoning:** This is dummy data from the API."
-    
-    return roster_dict, reasoning
