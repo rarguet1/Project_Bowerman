@@ -1,0 +1,3 @@
+-- Drop order : performances -> athletes
+DROP TABLE IF EXISTS PERFORMANCES CASCADE;
+DROP TABLE IF EXISTS ATHLETES;
