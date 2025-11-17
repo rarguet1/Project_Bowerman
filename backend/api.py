@@ -10,6 +10,12 @@ class RosterRequest(BaseModel):
     meet_context: str
     athlete_data: str 
 
+class DBRequest(BaseModel):
+    year: int
+    season: str 
+    team: str 
+    meet: str 
+
 # ---------------------------------------------------------------------------- #
 #                                   Init API                                   #
 # ---------------------------------------------------------------------------- #
@@ -41,6 +47,12 @@ def process_and_validate_data(athlete_data_text: str) -> (dict, str):
     except Exception as e:
         return None, f"An unexpected error occurred during validation: {e}"
 
+# This function should query the backend database for enries that fit 
+# the given constraints and create a team context dict with the athlete performances
+# with potential repeats and a conference context dict with either top results or all results
+async def query_db_for_context(year: int, season: str, team: str, meet: str) -> (dict, dict, str):
+    return {}, {}, None
+
 # ---------------------------------------------------------------------------- #
 #                                 API Endpoint                                 #
 # ---------------------------------------------------------------------------- #
@@ -70,4 +82,46 @@ async def generate_roster_endpoint(request: RosterRequest):
     return {
         "roster": roster,
         "reasoning": reasoning
+    }
+
+@app.post("/retrieve_context")
+async def retrieve_context_endpoint(request: DBRequest):
+    """
+    This endpoint receives year, season, meet, and team information and 
+    returns the adjusted corresponding json entries 
+    """
+    try:
+        # Validate and parse the input data
+        year_input = request.year
+        # ~ [2020, 2021, 2022, 2023, 2024, 2025]
+        season_input = request.season
+        # ~ ['Indoor', 'Outdoor'])
+        team_input = request.team
+        # ~ ['UMBC', '...'])
+        meet_input = request.meet
+        # ~ ["NCAA Division I Mid-Atlantic Region Cross Country Championships", "2025 America East Cross Country Championships", "2025 IC4A/ECAC XC Championship", "Paul Short Run (College)", "Cantello Invitational", "Mount St. Mary's 5k Duals 2025", "NCAA Division I Outdoor Track & Field Championships", "NCAA Division I East First Round", "2025 Outdoor IC4A/ECAC T&F Championships", "2025 America East Outdoor Track & Field Championship", "Penn Relays", "Virginia Challenge", "2025 Annual Legacy Track & Field Meet", "JMU Invitational", "Duke Invitational", "2025 George Mason Dalton Ebanks Invitational ", "Towson Invitational ", "Maryland Invitational", "UCF Black & Gold Challenge", "2025 America East Indoor Championship", "2025 Darius Dixon Memorial Invitational", "Boston University David Hemery Valentine Invitational", "Penn State National Open", "Dr. Sander Scorcher", "Nittany Lion Challenge", "VCU RAMS Indoor Invitational", "Youree Spence Garcia Meet", "NCAA Division I Mid-Atlantic Region Cross Country Championships", "2024 America East Cross Country Championships", "2024 IC4A/ECAC XC Championship", "Lehigh Paul Short Run (College)", "Harry Groves Spiked Shoe Invitational", "Cantello Invitational", "Mount St. Mary's 5k Duals", "NCAA East First Round", "2024 IC4A/ECAC Outdoor T&F Championships", "2024 America East Outdoor Track & Field Championships", "Penn Relays", "2024 Annual Legacy Track & Field Meet", "Virginia Challenge", "James Madison University Invitational", "Bison Outdoor Classic", "2024 George Mason Ebanks Invitational", "2024 Towson Invitational", "Weems Baskin Invitational 24", "2024 Towson Spring Opener", "America East Indoor Track & Field Championships", "2024 Darius Dixon Memorial Invitational", "Sykes & Sabock Challenge", "Penn State National Open"])
+        error = None
+    except Exception as e:
+        error = f"An unexpected error occurred during extraction: {e}"
+    
+    if error:
+        raise HTTPException(status_code = 400, detail = error)
+
+    # Build team and meet context from database
+    # Also trim future dates based on input meet or date
+    team_data, conference_data, error = await query_db_for_context(
+        year_input, 
+        season_input, 
+        team_input, 
+        meet_input
+    )
+    
+    # Handle errors from the LLM
+    if error:
+        raise HTTPException(status_code = 500, detail = error)
+    
+    # Return the successful response as a single JSON object
+    return {
+        "team_data": team_data,
+        "conference_data": conference_data
     }
