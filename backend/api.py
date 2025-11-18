@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+import json
+
+from dotenv import load_dotenv
+from supabase import create_client
+from supabase import Client
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import json
+
 from . import llm_strategy 
 
 # ---------------------------------------------------------------------------- #
@@ -14,7 +21,7 @@ class DBRequest(BaseModel):
     year: int
     season: str 
     team: str 
-    meet: str 
+    meet: str
 
 # ---------------------------------------------------------------------------- #
 #                                   Init API                                   #
@@ -23,6 +30,15 @@ app = FastAPI(
     title="Project Bowerman API",
     description="API for generating optimal track rosters using LLM logic."
 )
+
+# ---------------------------------------------------------------------------- #
+#                               Supabase Client                                #
+# ---------------------------------------------------------------------------- #
+load_dotenv()
+url: str = os.environ.get("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(url, key)
+
 # ---------------------------------------------------------------------------- #
 #                          Backend Logic (Validation)                          #
 # ---------------------------------------------------------------------------- #
@@ -84,8 +100,8 @@ async def generate_roster_endpoint(request: RosterRequest):
         "reasoning": reasoning
     }
 
-@app.post("/retrieve_context")
-async def retrieve_context_endpoint(request: DBRequest):
+@app.get("/retrieve_context")
+async def retrieve_context_endpoint(request: DBRequest) -> tuple[dict, dict, str]:
     """
     This endpoint receives year, season, meet, and team information and 
     returns the adjusted corresponding json entries 

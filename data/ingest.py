@@ -28,14 +28,15 @@ def build_payload(fp: PathLike | str) -> list[dict]:
     records = [
         {
             "full_name": athlete,
-            "school": "UMBC", # TODO: NEED to Change This!
+            "school": school,
             "event_class": event, 
             "time": time,
             "wind": wind,
             "meet_date": str(meet_date),
         }
-        for athlete, event, time, wind, meet_date in zip(
+        for athlete, school, event, time, wind, meet_date in zip(
             data['athlete'],
+            data['school'],
             data['event'],
             data['time'],
             data['wind'],
@@ -54,7 +55,7 @@ def ingest(payload: list[dict]) -> None:
     if response.data:
         print(f"Successfully inserted {response.data} records.")        
     else:
-        print(f"Error executing INGEST_PERFORMANCES (status code)")
+        print(f"Error executing INGEST_PERFORMANCES")
     
 
 def main() -> None:
