@@ -58,13 +58,20 @@ def peeking_at_data(data: dict) -> None:
         #print(f"Entry {i}:\n{field}")
 
 
-def performances_norm_df_format(data: dict) -> dict:
+def performances_norm_df_format(
+        data: dict,
+        school: str | None = None,
+        gender: str | None = None,
+) -> dict:
     """Function to normalize the performance list json to DataFrame friendly format for db ingest
     
     Parameters
     ----------
     data : dict
         Unnormalized dict of events w/ list of performance dicts
+    
+    school : str
+        Name of the school or team
     
     Returns
     -------
@@ -81,17 +88,48 @@ def performances_norm_df_format(data: dict) -> dict:
         "time": [],
         "wind": [],
         "date": [],
-        "school": []
+        "school": [], 
+        "gender": [],
+        "conference_rank": []
     }
     for event in data:
         for record in data[event]:
             ret["time"].append(record['time'])
             ret['wind'].append(record['wind'] if record['wind'] else "UNKNOWN")
-            ret["school"].append(record['team'] if record['team'] else "UNKNOWN")
+            ret["school"].append(school if school else "UNKNOWN")
             ret['date'].append(datetime.strptime(record['meet_date'], '%b %d, %Y').date())
             ret["athlete"].append(record['athlete']['text'])
             ret["event"].append(event)
+            ret["gender"].append(gender if gender else "UNKNOWN")
+            ret["conference_rank"].append("UKNOWN")
     
+    return ret
+
+
+def conference_norm_df_format(
+        data: dict,
+) -> dict:
+    """asdf"""
+    ret = {
+        "athlete": [],
+        "event": [],
+        "time": [],
+        "wind": [],
+        "date": [],
+        "school": [], 
+        "gender": [],
+        "conference_rank": []
+    }
+    for event in data:
+        for record in data[event]:
+            ret["athlete"].append(record["athlete"])
+            ret["event"].append(event)
+            ret["time"].append(record["time"])
+            ret["wind"].append(record["wind"] if record['wind'] else "UNKNOWN")
+            ret["date"].append(datetime.strptime(record['meet_date'], '%b %d, %Y').date().isoformat())
+            ret["school"].append(record["team"])
+            ret["gender"].append(record["gender"] if record["gender"] else "UNKNOWN")
+            ret["conference_rank"].append(record["conference_rank"])
     return ret
 
 
@@ -124,6 +162,7 @@ def main() -> None:
     parser.add_argument(
         "input_file",
         nargs='?',
+        default='-',
         type=lambda f: f if f == "-" else Path(f).expanduser().resolve(),
         metavar="<input_file>",
     )
@@ -139,8 +178,18 @@ def main() -> None:
 
     args = parser.parse_args()
     data = load_json(args.input_file)
+    
+    if args.input_file != "-":
+        # school_gender_*.json
+        school = args.input_file.stem.split("_")[0]
+        gender = args.input_file.stem.split("_")[1]
+        #data = performances_norm_df_format(data, school, gender)
+        data = conference_norm_df_format(data)
+    else:
+        #data = performances_norm_df_format(data)
+        data = conference_norm_df_format(data)
+
     #peeking_at_data(data)
-    data = performances_norm_df_format(data)
     save_data(data, args.stdout)
 
 

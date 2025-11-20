@@ -33,14 +33,18 @@ def build_payload(fp: PathLike | str) -> list[dict]:
             "time": time,
             "wind": wind,
             "meet_date": str(meet_date),
+            "gender":gender,
+            "conference_rank":rank
         }
-        for athlete, school, event, time, wind, meet_date in zip(
+        for athlete, school, event, time, wind, meet_date, gender, rank in zip(
             data['athlete'],
             data['school'],
             data['event'],
             data['time'],
             data['wind'],
             data['date'],
+            data['gender'],
+            data['conference_rank']
         )
     ]
     return records
@@ -64,6 +68,7 @@ def main() -> None:
     parser.add_argument(
         "input_file",
         nargs='?',
+        default='-',
         type=lambda f: f if f == "-" else Path(f).expanduser().resolve(),
         metavar="<input_file>",
     )
