@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -42,7 +43,7 @@ supabase: Client = create_client(url, key)
 # ---------------------------------------------------------------------------- #
 #                          Backend Logic (Validation)                          #
 # ---------------------------------------------------------------------------- #
-def process_and_validate_data(athlete_data_text: str) -> (dict, str):
+def process_and_validate_data(athlete_data_text: str) -> tuple[dict, str]:
     """
     Tries to parse the JSON string and validate its basic structure.
     This version validates the new "event-first" data structure.
@@ -66,14 +67,56 @@ def process_and_validate_data(athlete_data_text: str) -> (dict, str):
 # This function should query the backend database for enries that fit 
 # the given constraints and create a team context dict with the athlete performances
 # with potential repeats and a conference context dict with either top results or all results
-async def query_db_for_context(year: int, season: str, team: str, meet: str) -> (dict, dict, str):
+async def query_db_for_context(
+        year: int, 
+        team: str, 
+) -> tuple[dict, dict, str]:
+    """Queries db for athlete performances for a given team and year"""
+    
+    ret = {team: {}}; error=None
+    try:
+        response = (
+            supabase.rpc(
+                "retrieve_all",
+                {
+                    "season_year": year,
+                    "team": team,
+                }
+            )
+            .execute()
+        )
+
+        if data:= response.data:
+            # format from the pic in discord (subject to change?)
+            for row in data:
+                event=row["event_type"]; name=row["ath_name"]
+                stats = row["event"], row['event_wind'], row['event_date']
+                
+                # adding event
+                if event not in ret[team]:
+                    ret[team][event] = {name : [stats]}
+
+                # adding athlete to event
+                elif name not in ret[team][event]:
+                    ret[team][event][name] = [stats]
+                
+                else:
+                    ret[team][event][name].append(stats)
+
+    except Exception as e:
+        error = f"ERROR in calling RETRIEVE_ALL(): {e}"
+
+    #TODO: 
+    # 1. complete this function 
+    # 2. improve error handling
+
     return {}, {}, None
 
 # ---------------------------------------------------------------------------- #
 #                                 API Endpoint                                 #
 # ---------------------------------------------------------------------------- #
 @app.post("/generate_roster")
-async def generate_roster_endpoint(request: RosterRequest):
+async def generate_roster_endpoint(request: RosterRequest) -> dict:
     """
     This endpoint receives meet context and athlete data (as a JSON string),
     validates it, and returns a generated roster with reasoning from an LLM.
@@ -101,7 +144,7 @@ async def generate_roster_endpoint(request: RosterRequest):
     }
 
 @app.get("/retrieve_context")
-async def retrieve_context_endpoint(request: DBRequest) -> tuple[dict, dict, str]:
+async def retrieve_context_endpoint(request: DBRequest) -> dict:
     """
     This endpoint receives year, season, meet, and team information and 
     returns the adjusted corresponding json entries 
@@ -126,10 +169,8 @@ async def retrieve_context_endpoint(request: DBRequest) -> tuple[dict, dict, str
     # Build team and meet context from database
     # Also trim future dates based on input meet or date
     team_data, conference_data, error = await query_db_for_context(
-        year_input, 
-        season_input, 
-        team_input, 
-        meet_input
+        year_input,
+        team_input,
     )
     
     # Handle errors from the LLM
