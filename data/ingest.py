@@ -60,6 +60,8 @@ def ingest(payload: list[dict]) -> None:
         print(f"Successfully inserted {response.data} records.")        
     else:
         print(f"Error executing INGEST_PERFORMANCES")
+        error = getattr(response, "error", None) if not isinstance(response, dict) else response.get("error")
+        print(error)
     
 
 def main() -> None:

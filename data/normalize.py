@@ -15,9 +15,9 @@ def load_json(fp: PathLike | str) -> dict:
     try:
         if fp == "-":
             data = json.load(sys.stdin)
-        else:
-            with open(fp, 'r') as file:
-                data = json.load(file)
+        else: 
+            file = open(fp, 'r', encoding='utf-8')
+            data = json.load(file)
         return data
     
     except FileNotFoundError:
@@ -133,27 +133,6 @@ def conference_norm_df_format(
     return ret
 
 
-# def performance_norm(data: dict) -> dict:
-#     """Function to normalize the performance list json to the format
-#     {athlete: {event: [(time, wind, date),...]}, school:[name]}
-#     """
-#     ret = {}
-#     for event in data:
-#         for record in data[event]:
-#             info = record['time'], record['wind'], record['meet_date']
-
-#             if (athlete := record['athlete']['text']) not in ret:    
-#                 ret[athlete] = {
-#                     event: [info]
-#                 }
-#             elif event not in ret[athlete]:
-#                 ret[athlete][event] = [info]
-#             else:
-#                 ret[athlete][event].append(info)
-
-#     return ret
-
-
 def main() -> None:
     """Runs Script"""
     parser = ArgumentParser(
@@ -172,9 +151,18 @@ def main() -> None:
         help="""An option if you want to immediately redirect/pipe a dataframe friendly json \
             otherwise this will write to normalized/ directory."""
     )
+    parser.add_argument(
+        "--perf",
+        action="store_true",
+        help="Specify this option for performance list format"
+    )
+    parser.add_argument(
+        "--conf",
+        action="store_true",
+        help="Specify this option for conference list format"
+    )
     # TODO:
-    # 1. Need to add an arg for handling conference performances
-    # 2. Need to write something for normalizing conference performances
+    # 1. clean up below for additional options
 
     args = parser.parse_args()
     data = load_json(args.input_file)
