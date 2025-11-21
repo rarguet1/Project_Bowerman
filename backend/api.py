@@ -67,51 +67,96 @@ def process_and_validate_data(athlete_data_text: str) -> tuple[dict, str]:
 # This function should query the backend database for enries that fit 
 # the given constraints and create a team context dict with the athlete performances
 # with potential repeats and a conference context dict with either top results or all results
-async def query_db_for_context(
-        year: int, 
-        team: str, 
-) -> tuple[dict, dict, str]:
-    """Queries db for athlete performances for a given team and year"""
-    
-    ret = {team: {}}; error=None
+async def query_db_for_team_context(year: int) -> tuple[dict | None, str | None]:
+    """Queries db for team performances for a given year """
+    ret={}; error=None
     try:
         response = (
             supabase.rpc(
-                "retrieve_all",
-                {
-                    "season_year": year,
-                    "team": team,
-                }
+                "retrieve_team_context",
+                {"season_year": year,}
             )
             .execute()
         )
 
-        if data:= response.data:
-            # format from the pic in discord (subject to change?)
-            for row in data:
-                event=row["event_type"]; name=row["ath_name"]
-                stats = row["event"], row['event_wind'], row['event_date']
+        if response.data:
+            for row in response.data:
+                school=row["ath_team"]; event=row["event_type"]; name=row["ath_name"]; gender=row["ath_gender"]
+                stats = row["event_time"], row['event_wind'], row['event_date']
                 
-                # adding event
-                if event not in ret[team]:
-                    ret[team][event] = {name : [stats]}
+                # adding school/team
+                if school not in ret:
+                    ret[school] = {
+                        gender: {
+                            event : {
+                                name : [stats]
+                            }
+                        }
+                    }
+
+                # adding gender for team
+                elif gender not in ret[school]:
+                    ret[school][gender] = {
+                        event : {
+                            name : [stats]
+                        }
+                    }
+                
+                # adding event for team
+                elif event not in ret[school][gender]:
+                    ret[school][gender][event] = {name : [stats]}
 
                 # adding athlete to event
-                elif name not in ret[team][event]:
-                    ret[team][event][name] = [stats]
+                elif name not in ret[school][gender][event]:
+                    ret[school][gender][event][name] = [stats]
                 
                 else:
-                    ret[team][event][name].append(stats)
+                    ret[school][gender][event][name].append(stats)
 
     except Exception as e:
-        error = f"ERROR in calling RETRIEVE_ALL(): {e}"
+        error = f"ERROR calling RETRIEVE_TEAM_CONTEXT(): {e}"
 
-    #TODO: 
-    # 1. complete this function 
-    # 2. improve error handling
+    return ret, error
 
-    return {}, {}, None
+async def query_db_for_conference_context(year: int) -> tuple[dict | None, str | None]:
+    """Queries db for actual conference entries (ground truth)"""
+    ret={}; error=None
+    try:
+        response = (
+            supabase.rpc(
+                "retrieve_conference_context",
+                {"season_year": year,}
+            )
+            .execute()
+        )
 
+        if response.data:
+            for row in response.data:
+                school=row["ath_team"]; event=row["event_type"]; name=row["ath_name"]; gender=row["ath_gender"]
+
+                # adding school/team
+                if school not in ret:
+                    ret[school] = {
+                        gender : {
+                            event : [name]
+                        }
+                    }
+                
+                # adding gender for school
+                elif gender not in ret[school]:
+                    ret[school][gender] = {event : [name]}
+
+                # adding event for team
+                elif event not in ret[school][gender]:
+                    ret[school][gender][event] = [name]
+                
+                else:
+                    ret[school][gender][event].append(name)
+
+    except Exception as e:
+        error = f"ERROR calling RETRIEVE_CONFERENCE_CONTEXT(): {e}"
+    
+    return ret, error
 # ---------------------------------------------------------------------------- #
 #                                 API Endpoint                                 #
 # ---------------------------------------------------------------------------- #
@@ -168,12 +213,11 @@ async def retrieve_context_endpoint(request: DBRequest) -> dict:
 
     # Build team and meet context from database
     # Also trim future dates based on input meet or date
-    team_data, conference_data, error = await query_db_for_context(
-        year_input,
-        team_input,
-    )
+    team_data, error = await query_db_for_team_context(year_input)
+    if error:
+        raise HTTPException(status_code = 500, detail = error)
     
-    # Handle errors from the LLM
+    conference_data, error = await query_db_for_conference_context(year_input)    
     if error:
         raise HTTPException(status_code = 500, detail = error)
     

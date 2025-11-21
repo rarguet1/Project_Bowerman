@@ -136,7 +136,7 @@ def conference_norm_df_format(
 def main() -> None:
     """Runs Script"""
     parser = ArgumentParser(
-        description="Loads and reformats webscraped data",
+        description="Loads and reformats webscraped data for db ingestion",
     )
     parser.add_argument(
         "input_file",
@@ -144,40 +144,41 @@ def main() -> None:
         default='-',
         type=lambda f: f if f == "-" else Path(f).expanduser().resolve(),
         metavar="<input_file>",
+        help="Input data file, if left unspecified, it will default to stdin"
     )
     parser.add_argument(
         "--stdout",
         action="store_true",
         help="""An option if you want to immediately redirect/pipe a dataframe friendly json \
-            otherwise this will write to normalized/ directory."""
+            otherwise this will write to normalized/ directory.""",
+        metavar="<stdout>"
     )
     parser.add_argument(
         "--perf",
         action="store_true",
-        help="Specify this option for performance list format"
+        help="Specify this option for performance list format",
+        metavar="<perf>"
     )
     parser.add_argument(
         "--conf",
         action="store_true",
-        help="Specify this option for conference list format"
+        help="Specify this option for conference list format",
+        metavar="<conf>"
     )
-    # TODO:
-    # 1. clean up below for additional options
 
+    # school_gender_*.json
     args = parser.parse_args()
     data = load_json(args.input_file)
+    school = args.input_file.stem.split("_")[0] if args.input_file != "-" else None
+    gender = args.input_file.stem.split("_")[1] if args.input_file != "-" else None
     
-    if args.input_file != "-":
-        # school_gender_*.json
-        school = args.input_file.stem.split("_")[0]
-        gender = args.input_file.stem.split("_")[1]
-        #data = performances_norm_df_format(data, school, gender)
+    if args.conf and not args.perf:
         data = conference_norm_df_format(data)
+    elif args.perf and not args.conf:
+        data = performances_norm_df_format(data, school, gender)
     else:
-        #data = performances_norm_df_format(data)
-        data = conference_norm_df_format(data)
+        data = None
 
-    #peeking_at_data(data)
     save_data(data, args.stdout)
 
 
