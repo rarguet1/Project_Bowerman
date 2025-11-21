@@ -15,9 +15,9 @@ def load_json(fp: PathLike | str) -> dict:
     try:
         if fp == "-":
             data = json.load(sys.stdin)
-        else:
-            with open(fp, 'r') as file:
-                data = json.load(file)
+        else: 
+            file = open(fp, 'r', encoding='utf-8')
+            data = json.load(file)
         return data
     
     except FileNotFoundError:
@@ -58,13 +58,20 @@ def peeking_at_data(data: dict) -> None:
         #print(f"Entry {i}:\n{field}")
 
 
-def performances_norm_df_format(data: dict) -> dict:
+def performances_norm_df_format(
+        data: dict,
+        school: str | None = None,
+        gender: str | None = None,
+) -> dict:
     """Function to normalize the performance list json to DataFrame friendly format for db ingest
     
     Parameters
     ----------
     data : dict
         Unnormalized dict of events w/ list of performance dicts
+    
+    school : str
+        Name of the school or team
     
     Returns
     -------
@@ -81,66 +88,97 @@ def performances_norm_df_format(data: dict) -> dict:
         "time": [],
         "wind": [],
         "date": [],
-        "school": []
+        "school": [], 
+        "gender": [],
+        "conference_rank": []
     }
     for event in data:
         for record in data[event]:
             ret["time"].append(record['time'])
             ret['wind'].append(record['wind'] if record['wind'] else "UNKNOWN")
-            ret["school"].append(record['team'] if record['team'] else "UNKNOWN")
+            ret["school"].append(school if school else "UNKNOWN")
             ret['date'].append(datetime.strptime(record['meet_date'], '%b %d, %Y').date())
             ret["athlete"].append(record['athlete']['text'])
             ret["event"].append(event)
+            ret["gender"].append(gender if gender else "UNKNOWN")
+            ret["conference_rank"].append("UKNOWN")
     
     return ret
 
 
-# def performance_norm(data: dict) -> dict:
-#     """Function to normalize the performance list json to the format
-#     {athlete: {event: [(time, wind, date),...]}, school:[name]}
-#     """
-#     ret = {}
-#     for event in data:
-#         for record in data[event]:
-#             info = record['time'], record['wind'], record['meet_date']
-
-#             if (athlete := record['athlete']['text']) not in ret:    
-#                 ret[athlete] = {
-#                     event: [info]
-#                 }
-#             elif event not in ret[athlete]:
-#                 ret[athlete][event] = [info]
-#             else:
-#                 ret[athlete][event].append(info)
-
-#     return ret
+def conference_norm_df_format(
+        data: dict,
+) -> dict:
+    """asdf"""
+    ret = {
+        "athlete": [],
+        "event": [],
+        "time": [],
+        "wind": [],
+        "date": [],
+        "school": [], 
+        "gender": [],
+        "conference_rank": []
+    }
+    for event in data:
+        for record in data[event]:
+            ret["athlete"].append(record["athlete"])
+            ret["event"].append(event)
+            ret["time"].append(record["time"])
+            ret["wind"].append(record["wind"] if record['wind'] else "UNKNOWN")
+            ret["date"].append(datetime.strptime(record['meet_date'], '%b %d, %Y').date().isoformat())
+            ret["school"].append(record["team"])
+            ret["gender"].append(record["gender"] if record["gender"] else "UNKNOWN")
+            ret["conference_rank"].append(record["conference_rank"])
+    return ret
 
 
 def main() -> None:
     """Runs Script"""
     parser = ArgumentParser(
-        description="Loads and reformats webscraped data",
+        description="Loads and reformats webscraped data for db ingestion",
     )
     parser.add_argument(
         "input_file",
         nargs='?',
+        default='-',
         type=lambda f: f if f == "-" else Path(f).expanduser().resolve(),
         metavar="<input_file>",
+        help="Input data file, if left unspecified, it will default to stdin"
     )
     parser.add_argument(
         "--stdout",
         action="store_true",
         help="""An option if you want to immediately redirect/pipe a dataframe friendly json \
-            otherwise this will write to normalized/ directory."""
+            otherwise this will write to normalized/ directory.""",
+        metavar="<stdout>"
     )
-    # TODO:
-    # 1. Need to add an arg for handling conference performances
-    # 2. Need to write something for normalizing conference performances
+    parser.add_argument(
+        "--perf",
+        action="store_true",
+        help="Specify this option for performance list format",
+        metavar="<perf>"
+    )
+    parser.add_argument(
+        "--conf",
+        action="store_true",
+        help="Specify this option for conference list format",
+        metavar="<conf>"
+    )
 
+    # school_gender_*.json
     args = parser.parse_args()
     data = load_json(args.input_file)
-    #peeking_at_data(data)
-    data = performances_norm_df_format(data)
+    school = args.input_file.stem.split("_")[0] if args.input_file != "-" else None
+    gender = args.input_file.stem.split("_")[1] if args.input_file != "-" else None
+    
+    if args.conf and not args.perf:
+        data = conference_norm_df_format(data)
+    elif args.perf and not args.conf:
+        data = performances_norm_df_format(data, school, gender)
+    else:
+        data = None
+
     save_data(data, args.stdout)
 
 

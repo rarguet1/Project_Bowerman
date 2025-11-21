@@ -6,7 +6,7 @@ AS $$
 DECLARE
     record			JSONB;
     athlete_row		RECORD;
-    ath_id		 	BIGINT;
+    ath_id		 	INT;
     inserted	 	BIGINT := 0;
 BEGIN
     FOR record IN
@@ -14,10 +14,15 @@ BEGIN
         FROM jsonb_array_elements(payload)
     LOOP
         -- into athletes
-        INSERT INTO athletes (full_name, school)
+        INSERT INTO athletes (
+            full_name, 
+            school, 
+            gender
+        )
         VALUES (
             record->>'full_name',
-            record->>'school'
+            record->>'school',
+            record->>'gender'
         )
         ON CONFLICT (full_name, school)
 		DO NOTHING
@@ -35,6 +40,7 @@ BEGIN
             event_class,
             time,
             wind,
+            conference_rank,
             meet_date
         )
         VALUES (
@@ -42,6 +48,7 @@ BEGIN
             record->>'event_class',
             record->>'time',
             record->>'wind',
+            record->>'conference_rank',
             (record->>'meet_date')::DATE
         );
 

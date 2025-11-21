@@ -28,18 +28,23 @@ def build_payload(fp: PathLike | str) -> list[dict]:
     records = [
         {
             "full_name": athlete,
-            "school": "UMBC", # TODO: NEED to Change This!
+            "school": school,
             "event_class": event, 
             "time": time,
             "wind": wind,
             "meet_date": str(meet_date),
+            "gender":gender,
+            "conference_rank":rank
         }
-        for athlete, event, time, wind, meet_date in zip(
+        for athlete, school, event, time, wind, meet_date, gender, rank in zip(
             data['athlete'],
+            data['school'],
             data['event'],
             data['time'],
             data['wind'],
             data['date'],
+            data['gender'],
+            data['conference_rank']
         )
     ]
     return records
@@ -54,7 +59,9 @@ def ingest(payload: list[dict]) -> None:
     if response.data:
         print(f"Successfully inserted {response.data} records.")        
     else:
-        print(f"Error executing INGEST_PERFORMANCES (status code)")
+        print(f"Error executing INGEST_PERFORMANCES")
+        error = getattr(response, "error", None) if not isinstance(response, dict) else response.get("error")
+        print(error)
     
 
 def main() -> None:
@@ -63,6 +70,7 @@ def main() -> None:
     parser.add_argument(
         "input_file",
         nargs='?',
+        default='-',
         type=lambda f: f if f == "-" else Path(f).expanduser().resolve(),
         metavar="<input_file>",
     )
