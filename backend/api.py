@@ -9,20 +9,24 @@ from supabase import Client
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from . import llm_strategy 
+import llm_strategy 
+# ~ from . import llm_strategy 
+
+# uvicorn api:app --reload
 
 # ---------------------------------------------------------------------------- #
 #                                Pydantic Model                                #
 # ---------------------------------------------------------------------------- #
 class RosterRequest(BaseModel):
+    team: str
     meet_context: str
-    athlete_data: str 
+    athlete_data: dict 
 
 class DBRequest(BaseModel):
     year: int
     season: str 
     team: str 
-    meet: str
+    # ~ meet: str
 
 # ---------------------------------------------------------------------------- #
 #                                   Init API                                   #
@@ -167,33 +171,33 @@ async def generate_roster_endpoint(request: RosterRequest) -> dict:
     validates it, and returns a generated roster with reasoning from an LLM.
     """
     # Validate and parse the input data
-    parsed_data, error = process_and_validate_data(request.athlete_data)
-    if error:
-        raise HTTPException(status_code=400, detail=error)
-
+    # ~ parsed_data, error = process_and_validate_data(request.athlete_data)
+    # ~ if error:
+        # ~ raise HTTPException(status_code=400, detail=error)
+    # ~ print("Data Parsed and Validated, Calling LLM")
     # Call the core logic from the strategy module
     roster, reasoning = await llm_strategy.generate_roster_strategy(
-        athlete_data=parsed_data,
-        meet_context=request.meet_context,
+        team = request.team,
+        athlete_data = request.athlete_data,
+        meet_context = request.meet_context,
         provider="gemini" 
     )
-
     # Handle errors from the LLM
     if roster is None:
         raise HTTPException(status_code=500, detail=reasoning)
-
     # Return the successful response as a single JSON object
     return {
         "roster": roster,
         "reasoning": reasoning
     }
 
-@app.get("/retrieve_context")
+@app.post("/retrieve_context")
 async def retrieve_context_endpoint(request: DBRequest) -> dict:
     """
     This endpoint receives year, season, meet, and team information and 
     returns the adjusted corresponding json entries 
     """
+    
     try:
         # Validate and parse the input data
         year_input = request.year
@@ -202,27 +206,54 @@ async def retrieve_context_endpoint(request: DBRequest) -> dict:
         # ~ ['Indoor', 'Outdoor'])
         team_input = request.team
         # ~ ['UMBC', '...'])
-        meet_input = request.meet
+        # ~ meet_input = request.meet
         # ~ ["NCAA Division I Mid-Atlantic Region Cross Country Championships", "2025 America East Cross Country Championships", "2025 IC4A/ECAC XC Championship", "Paul Short Run (College)", "Cantello Invitational", "Mount St. Mary's 5k Duals 2025", "NCAA Division I Outdoor Track & Field Championships", "NCAA Division I East First Round", "2025 Outdoor IC4A/ECAC T&F Championships", "2025 America East Outdoor Track & Field Championship", "Penn Relays", "Virginia Challenge", "2025 Annual Legacy Track & Field Meet", "JMU Invitational", "Duke Invitational", "2025 George Mason Dalton Ebanks Invitational ", "Towson Invitational ", "Maryland Invitational", "UCF Black & Gold Challenge", "2025 America East Indoor Championship", "2025 Darius Dixon Memorial Invitational", "Boston University David Hemery Valentine Invitational", "Penn State National Open", "Dr. Sander Scorcher", "Nittany Lion Challenge", "VCU RAMS Indoor Invitational", "Youree Spence Garcia Meet", "NCAA Division I Mid-Atlantic Region Cross Country Championships", "2024 America East Cross Country Championships", "2024 IC4A/ECAC XC Championship", "Lehigh Paul Short Run (College)", "Harry Groves Spiked Shoe Invitational", "Cantello Invitational", "Mount St. Mary's 5k Duals", "NCAA East First Round", "2024 IC4A/ECAC Outdoor T&F Championships", "2024 America East Outdoor Track & Field Championships", "Penn Relays", "2024 Annual Legacy Track & Field Meet", "Virginia Challenge", "James Madison University Invitational", "Bison Outdoor Classic", "2024 George Mason Ebanks Invitational", "2024 Towson Invitational", "Weems Baskin Invitational 24", "2024 Towson Spring Opener", "America East Indoor Track & Field Championships", "2024 Darius Dixon Memorial Invitational", "Sykes & Sabock Challenge", "Penn State National Open"])
         error = None
     except Exception as e:
         error = f"An unexpected error occurred during extraction: {e}"
-    
     if error:
         raise HTTPException(status_code = 400, detail = error)
-
+    
+    
     # Build team and meet context from database
     # Also trim future dates based on input meet or date
     team_data, error = await query_db_for_team_context(year_input)
     if error:
         raise HTTPException(status_code = 500, detail = error)
     
-    conference_data, error = await query_db_for_conference_context(year_input)    
-    if error:
-        raise HTTPException(status_code = 500, detail = error)
+    if len(team_data.keys()) == 0:
+        raise HTTPException(status_code = 500, detail = "Data for year not found")
+    if not (team_input in team_data.keys()):
+        raise HTTPException(status_code = 500, detail = "Data for team not found")
+    
+    # ~ print("Team Data Got: ")
+    # ~ temp = team_data
+    # ~ while True:
+        # ~ try:
+            # ~ print(temp.keys())
+            # ~ temp = temp[list(temp.keys())[0]]
+        # ~ except:
+            # ~ break
+            
+    # ~ conference_data, error = await query_db_for_conference_context(year_input)    
+    # ~ if error:
+        # ~ raise HTTPException(status_code = 500, detail = error)
+    
+    # ~ if len(conference_data.keys()) == 0:
+        # ~ raise HTTPException(status_code = 500, detail = "Data for year not found")
+    # ~ print("Conf Data Got: ")
+    # ~ temp = conference_data
+    # ~ while True:
+        # ~ try:
+            # ~ print(temp.keys())
+            # ~ temp = temp[list(temp.keys())[0]]
+        # ~ except:
+            # ~ break
+
+    
     
     # Return the successful response as a single JSON object
     return {
-        "team_data": team_data,
-        "conference_data": conference_data
+        # ~ "team_data": single_team_data,
+        "pre_conference_data": team_data
     }

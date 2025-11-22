@@ -18,6 +18,7 @@ except Exception as e:
     client = None  
 
 async def generate_roster_strategy(
+    team: str, 
     athlete_data: dict, 
     meet_context: str, 
     provider: str = "gemini"
@@ -29,7 +30,7 @@ async def generate_roster_strategy(
     if provider == "gemini":
         if client is None: 
             return None, "Error: Gemini client not initialized. Check API key."
-        return await _get_gemini_recommendation(athlete_data, meet_context)
+        return await _get_gemini_recommendation(team, athlete_data, meet_context)
     
     elif provider == "placeholder":
         roster, reasoning = _get_placeholder_recommendation()
@@ -38,31 +39,38 @@ async def generate_roster_strategy(
     else:
         return None, f"Unknown provider: {provider}"
 
-async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (dict, str):
+async def _get_gemini_recommendation(team: str, athlete_data: dict, meet_context: str) -> (dict, str):
     """
     Generates a roster strategy using Google's Gemini.
     This prompt is now tailored to the "event-first" JSON data.
     """
     response = None
     
+    conference_data = athlete_data["pre_conference_data"]
+    
     # PROMPT for TFRRS-style data
     system_instruction_text = f"""
     You are "Coach Bowerman," an expert collegiate track and field strategist. 
-    Your task is to create an optimal roster to maximize team points for an
-    upcoming meet, based on historical athlete data and the meet's context.
+    Your task is to recommend an optimal roster to maximize team points for the
+    season end conference based on historical athlete data and the meet's context.
 
     MEET CONTEXT:
     {meet_context}
-
-    ATHLETE DATA:
-    The following JSON data provides lists of top performances for your team, organized by EVENT.
-    {json.dumps(athlete_data, indent=2)}
+    
+    TEAM NAME:
+    {team}
+    
+    CONFERENCE DATA:
+    The following JSON data provides lists of all performances for all teams in the conference meet, organized by SCHOOL, GENDER and then EVENT.
+    Each EVENT entry contains [TIME, WINDSPEED, PERFORMANCE DATE]
+    All atheltes that are not in your specified school are competitors.
+    {json.dumps(conference_data, indent=2)}
 
     *** YOUR TASK ***
-    Analyze the provided athlete JSON data (which is grouped by *event*) and the meet context.
-    You are acting as the coach for your collegiate track team. Your job is to enter your athletes in events to maximize team points scored.
+    Analyze the provided athlete JSON data and the meet context.
+    You are acting as the coach for your collegiate track team. Your job is to enter your athletes in events to maximize cumulative team points scored.
     Identify the best combination of athletes per and across events based on speed and possible fatigue after multiple events. 
-    Consider everyone's season performances including your athletes and opposing athletes in the conference.
+    Explicitly consider everyone's season performances including your athletes and opposing athletes in the conference and how they may perform against each other.
     Note that the same athlete may appear in multiple event lists.
     YOUR OUTPUT MUST BE A SINGLE, VALID JSON OBJECT with TWO keys:
 
@@ -73,9 +81,9 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (
         (Use the "text" field from the data for "Athlete Name").
 
     *** SCORING/RULES ***
-    - Scoring: 10-8-6-5-4-3-2-1
-    - Max 4 events per athlete 
-
+    - Scoring by event placement: 10-8-6-5-4-3-2-1
+    - Maximum of 4 athletes per event per school
+    
     *** STRICT EXAMPLE OF YOUR FINAL OUTPUT ***
     {{
       "reasoning": "**Strategy Analysis:**\n* Genelle Stephens is a key athlete in both the 200m and 400mh.\n* We have strong depth in the 400m with McDonald, Stephens, and Sibblies.",
@@ -92,11 +100,11 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (
     user_prompt_content = [
         "Please generate the roster strategy based on the context and data I provided in the system instruction."
     ]
-
+    
     # This config object requests JSON output
     generation_config = types.GenerateContentConfig(
-        system_instruction=system_instruction_text,
-        response_mime_type="application/json",
+        system_instruction = system_instruction_text,
+        response_mime_type = "application/json",
     )
     
     try:
