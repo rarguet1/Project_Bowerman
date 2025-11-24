@@ -10,6 +10,7 @@ dependencies = [
     "ipython>=8.18.1",
     "mistral>=20.1.0",
     "mistralai>=1.9.11",
+    "openai>=2.8.1",
     "pandas>=2.3.3",
     "pydantic>=2.12.3",
     "python-dotenv>=1.2.1",
