@@ -65,19 +65,9 @@ if submitted:
 
             if response.status_code == 200:
                 raw_data = response.json()
-                
-                t_count = len(raw_data.get("team_data", {}))
-                c_count = len(raw_data.get("conference_data", {}))
-                
-                # Empty warning
-                if t_count == 0 and c_count == 0:
-                    st.warning(f" Database returned 0 records.")
-                    st.write(f"Year={year_input}, Season={season_input}")
-                    st.stop() 
-                else:
-                    st.success(f"Team Data: {t_count} schools, Conf Data: {c_count} schools.")
 
-                athlete_data_string = json.dumps(raw_data)
+                # athlete_data_string = json.dumps(raw_data)
+                athlete_data_string = raw_data
             else:
                 try:
                     error_detail = response.json().get('detail')
