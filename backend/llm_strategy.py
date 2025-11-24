@@ -5,6 +5,8 @@ import pandas as pd
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types 
+from pydantic import BaseModel, Field
+from typing import List
 
 # ---------------------------- Load env variables ---------------------------- #
 load_dotenv() 
@@ -14,14 +16,34 @@ try:
     client = genai.Client()
 except Exception as e:
     print(f"Error: Could not initialize Gemini client. {e}")
-    print("Please make sure 'GEMINI_API_KEY' or 'GOOGLE_API_KEY' is set in your .env file.")
-    client = None  
+    client = None
+
+# ---------------------------------------------------------------------------- #
+#                           Strict Output Schemas                              #
+# ---------------------------------------------------------------------------- #
+
+class AthleteEntry(BaseModel):
+    name: str = Field(alias="Athlete Name", description="Name of the athlete")
+    events: str = Field(alias="Event(s)", description="The specific event(s) entered")
+    notes: str = Field(alias="Notes", description="Brief strategic note")
+
+class RosterSplit(BaseModel):
+    men: List[AthleteEntry]
+    women: List[AthleteEntry]
+
+class CoachResponse(BaseModel):
+    reasoning: str = Field(description="Markdown formatted strategic reasoning")
+    roster: RosterSplit
+
+# ---------------------------------------------------------------------------- #
+#                             Strategy Logic                                   #
+# ---------------------------------------------------------------------------- #
 
 async def generate_roster_strategy(
     athlete_data: dict, 
     meet_context: str, 
     provider: str = "gemini"
-) -> (dict, str):
+) -> tuple[dict, str]:
     """
     Dispatcher function to route to the correct LLM provider.
     Returns (roster_dict, reasoning_string)
@@ -32,8 +54,7 @@ async def generate_roster_strategy(
         return await _get_gemini_recommendation(athlete_data, meet_context)
     
     elif provider == "placeholder":
-        roster, reasoning = _get_placeholder_recommendation()
-        return roster, reasoning
+        return [], "Placeholder"
     
     else:
         return None, f"Unknown provider: {provider}"
@@ -45,7 +66,6 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (
     """
     response = None
     
-    # PROMPT for TFRRS-style data
     system_instruction_text = f"""
     You are "Coach Bowerman," an expert collegiate track and field strategist. 
     Your task is to create an optimal roster to maximize team points for an
@@ -54,23 +74,24 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (
     MEET CONTEXT:
     {meet_context}
 
-    ATHLETE DATA:
-    The following JSON data provides lists of top performances for your team, organized by EVENT.
+    DATA PROVIDED:
+    The JSON data below contains two keys:
+    1. "team_data": Your team's historical performances. Structure: School -> Gender -> Event -> Athlete -> [Performances].
+    2. "conference_data": Top performances from opposing teams in the conference.
     {json.dumps(athlete_data, indent=2)}
 
     *** YOUR TASK ***
-    Analyze the provided athlete JSON data (which is grouped by *event*) and the meet context.
+    Analyze the "team_data" to find your best athletes.
     You are acting as the coach for your collegiate track team. Your job is to enter your athletes in events to maximize team points scored.
     Identify the best combination of athletes per and across events based on speed and possible fatigue after multiple events. 
     Consider everyone's season performances including your athletes and opposing athletes in the conference.
     Note that the same athlete may appear in multiple event lists.
-    YOUR OUTPUT MUST BE A SINGLE, VALID JSON OBJECT with TWO keys:
 
-    1.  "reasoning": A markdown-formatted string. Explain your high-level 
-        strategy. Justify your decisions, especially for athletes competing in multiple events (max 4).
-    2.  "roster": A list of JSON objects. Each object must have keys:
-        "Athlete Name", "Event(s)", and "Notes".
-        (Use the "text" field from the data for "Athlete Name").
+    YOUR OUTPUT MUST BE A SINGLE, VALID JSON OBJECT with TWO keys:
+    1.  "reasoning": A markdown-formatted string. Explain your strategy for both genders.
+    2.  "roster": A JSON Object containing two keys: "men" and "women".
+        - "men": A list of objects {{"Athlete Name": "...", "Event(s)": "...", "Notes": "..."}}
+        - "women": A list of objects {{"Athlete Name": "...", "Event(s)": "...", "Notes": "..."}}
 
     *** SCORING/RULES ***
     - Scoring: 10-8-6-5-4-3-2-1
@@ -78,25 +99,28 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (
 
     *** STRICT EXAMPLE OF YOUR FINAL OUTPUT ***
     {{
-      "reasoning": "**Strategy Analysis:**\n* Genelle Stephens is a key athlete in both the 200m and 400mh.\n* We have strong depth in the 400m with McDonald, Stephens, and Sibblies.",
-      "roster": [
-        {{"Athlete Name": "LastName1, FirstName1", "Event(s)": "100m", "Notes": "Top seed, expected 10 points."}},
-        {{"Athlete Name": "LastName1, FirstName1", "Event(s)": "200m", "Notes": "Top seed, expected 10 points."}},
-        {{"Athlete Name": "LastName2, FirstName2", "Event(s)": "400m", "Notes": "Second best, but entered to prevent fatigue for FirstName1"}},
-        {{"Athlete Name": "LastName3, FirstName3", "Event(s)": "200m", "Notes": "Strong second event."}}
-      ]
+      "reasoning": "**Strategy Analysis:**\\n* Genelle Stephens is a key athlete in both the 200m and 400mh.\\n* We have strong depth in the 400m with McDonald, Stephens, and Sibblies.",
+      "roster": {{
+        "men": [
+           {{"Athlete Name": "LastName1, FirstName1", "Event(s)": "100m", "Notes": "Top seed, expected 10 points."}},
+           {{"Athlete Name": "LastName1, FirstName1", "Event(s)": "200m", "Notes": "Top seed, expected 10 points."}}
+        ],
+        "women": [
+           {{"Athlete Name": "LastName2, FirstName2", "Event(s)": "400m", "Notes": "Second best, but entered to prevent fatigue."}},
+           {{"Athlete Name": "LastName3, FirstName3", "Event(s)": "200m", "Notes": "Strong second event."}}
+        ]
+      }}
     }}
     """
     
-    # The user prompt is now just a trigger, since all data is in the system instruction
     user_prompt_content = [
         "Please generate the roster strategy based on the context and data I provided in the system instruction."
     ]
 
-    # This config object requests JSON output
     generation_config = types.GenerateContentConfig(
         system_instruction=system_instruction_text,
         response_mime_type="application/json",
+        response_schema=CoachResponse,
     )
     
     try:
@@ -106,10 +130,7 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> (
             config=generation_config       
         )
         
-        # Parse the JSON response
         data = json.loads(response.text)
-        
-        # Return the two values
         return data.get("roster"), data.get("reasoning")
 
     except Exception as e:
