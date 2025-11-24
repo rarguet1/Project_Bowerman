@@ -29,8 +29,9 @@ st.sidebar.warning("Make sure the backend API is running. See `README.md` for in
 #                                 Input Form                                   #
 # ---------------------------------------------------------------------------- #
 
-
 with st.form("roster_form"):
+    st.header("Configuration")
+    model_provider = st.selectbox("Select AI Model", ["gemini", "openai", "groq"])
     st.header("Team Suggestion Form")
     st.subheader("Step 1: Choose Scenario")
     
@@ -51,36 +52,41 @@ with st.form("roster_form"):
 
 
 if submitted:
+    athlete_data_string = None
     with st.spinner("Connecting to database... Constructing Meet Context..."):
         try:
-            athlete_data_string = None
-            
-            # Create the payload to send to the API
             payload = {
                 "year": year_input,
                 "season": season_input,
                 "team": team_input,
             }
             
-            # Make the POST request (non-streaming)
-            response = requests.post(DB_URL, json = payload)
+            response = requests.post(DB_URL, json=payload)
 
             if response.status_code == 200:
-                athlete_data_string = response.json()
+                raw_data = response.json()
+                
+                t_count = len(raw_data.get("team_data", {}))
+                c_count = len(raw_data.get("conference_data", {}))
+                
+                # Empty warning
+                if t_count == 0 and c_count == 0:
+                    st.warning(f" Database returned 0 records.")
+                    st.write(f"Year={year_input}, Season={season_input}")
+                    st.stop() 
+                else:
+                    st.success(f"Team Data: {t_count} schools, Conf Data: {c_count} schools.")
+
+                athlete_data_string = json.dumps(raw_data)
             else:
-                # Show error from the API
                 try:
-                    api_error_msg = f"Error from API (Status {response.status_code}): {response.json().get('detail')}"
+                    error_detail = response.json().get('detail')
                 except:
-                    api_error_msg = f"Error from API (Status {response.status_code}): {response.text}"
-                st.error(api_error_msg)
+                    error_detail = response.text
+                st.error(f"Database Error (Status {response.status_code}): {error_detail}")
 
         except requests.exceptions.ConnectionError:
-            conn_error_msg = (
-                "Connection Error: Could not connect to the backend API. "
-                f"Please make sure it is running at {API_URL}"
-            )
-            st.error(conn_error_msg)
+            st.error(f"Connection Error: Could not connect to DB API at {DB_URL}")
         except Exception as e:
             exc_error_msg = f"An unexpected error occurred: {e}"
             st.error(exc_error_msg)
@@ -93,7 +99,8 @@ if submitted:
                 payload = {
                     "team": team_input,
                     "meet_context": meet_context, 
-                    "athlete_data": athlete_data_string #json.dumps(athlete_data_string)
+                    "athlete_data": athlete_data_string,
+                    "provider": model_provider,
                 }
                 # Make the POST request (non-streaming)
                 response = requests.post(API_URL, json = payload)
@@ -102,18 +109,34 @@ if submitted:
                     roster_data = data.get("roster")
                     reasoning_text = data.get("reasoning")
                     
-                    # Display reasoning
                     st.subheader("Coach's Reasoning")
                     st.markdown(reasoning_text)
                     
-                    # Display roster
                     if roster_data:
+                        st.divider()
+
+                        if isinstance(roster_data, dict):
+                            col1, col2, = st.columns(2)
+
+                            with col1:
+                                st.subheader("Suggested Men's Roster")
+                                men_list = roster_data.get("men", [])
+                                if men_list:
+                                    st.dataframe(pd.DataFrame(men_list), width='stretch')
+                                else:
+                                    st.info("No men's entries generated.")
+
+                            with col2:
+                                    st.subheader("Suggested Women's Roster")
+                                    women_list = roster_data.get("women", [])
+                                    if men_list:
+                                        st.dataframe(pd.DataFrame(women_list), width='stretch')
+                                    else:
+                                        st.info("No men's entries generated.")
+                    else:
                         st.subheader("Suggested Roster")
-                        suggested_roster_df = pd.DataFrame(roster_data)
-                        st.dataframe(suggested_roster_df)
-                    
+                        st.dataframe(pd.DataFrame(roster_data))
                 else:
-                    # Show error from the API
                     try:
                         api_error_msg = f"Error from API (Status {response.status_code}): {response.json().get('detail')}"
                     except:
@@ -121,11 +144,6 @@ if submitted:
                     st.error(api_error_msg)
 
             except requests.exceptions.ConnectionError:
-                conn_error_msg = (
-                    "Connection Error: Could not connect to the backend API. "
-                    f"Please make sure it is running at {API_URL}"
-                )
-                st.error(conn_error_msg)
+                st.error(f"Connection Error: Is the backend running at {API_URL}?")
             except Exception as e:
-                exc_error_msg = f"An unexpected error occurred: {e}"
-                st.error(exc_error_msg)
+                st.error(f"An unexpected error occurred: {e}")

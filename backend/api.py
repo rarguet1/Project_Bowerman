@@ -21,6 +21,7 @@ class RosterRequest(BaseModel):
     team: str
     meet_context: str
     athlete_data: dict 
+    provider: str = "gemini"
 
 class DBRequest(BaseModel):
     year: int
@@ -58,10 +59,6 @@ def process_and_validate_data(athlete_data_text: str) -> tuple[dict, str]:
         # Check if it's a dictionary and not empty
         if not isinstance(data, dict) or not data:
             return None, "Invalid JSON: Data must be a non-empty JSON object (e.g., {'100m': [...]})."
-        
-        # Check if at least one key has a list of performances
-        if not any(isinstance(v, list) and len(v) > 0 for v in data.values()):
-             return None, "Invalid JSON: Data must contain at least one event (e.g., '100m') with a list of performances."
         return data, None
     except json.JSONDecodeError:
         return None, "Invalid input: Data is not valid JSON. Check your pasted data."
@@ -180,7 +177,7 @@ async def generate_roster_endpoint(request: RosterRequest) -> dict:
         team = request.team,
         athlete_data = request.athlete_data,
         meet_context = request.meet_context,
-        provider="gemini" 
+        provider=request.provider,
     )
     # Handle errors from the LLM
     if roster is None:

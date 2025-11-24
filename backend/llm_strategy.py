@@ -1,55 +1,83 @@
 import os
 import json
-import time
-import pandas as pd
 from dotenv import load_dotenv
 from google import genai
-from google.genai import types 
+from google.genai import types
+from openai import AsyncOpenAI # NEW IMPORT
+from pydantic import BaseModel, Field
+from typing import List
+from groq import AsyncGroq
 
 # ---------------------------- Load env variables ---------------------------- #
 load_dotenv() 
-MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.2-70b-versatile")
 
+# Initialize Gemini
 try:
-    client = genai.Client()
-except Exception as e:
-    print(f"Error: Could not initialize Gemini client. {e}")
-    print("Please make sure 'GEMINI_API_KEY' or 'GOOGLE_API_KEY' is set in your .env file.")
-    client = None  
+    gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+except Exception:
+    gemini_client = None
 
+# Initialize OpenAI
+try:
+    openai_client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+except Exception:
+    openai_client = None
+
+# Initialize Groq
+try:
+    groq_client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
+except Exception:
+    groq_client = None
+# ---------------------------------------------------------------------------- #
+#                           Strict Output Schemas                              #
+# ---------------------------------------------------------------------------- #
+class AthleteEntry(BaseModel):
+    name: str = Field(alias="Athlete Name", description="Name of the athlete")
+    events: str = Field(alias="Event(s)", description="The specific event(s) entered")
+    notes: str = Field(alias="Notes", description="Brief strategic note")
+
+class RosterSplit(BaseModel):
+    men: List[AthleteEntry]
+    women: List[AthleteEntry]
+
+class CoachResponse(BaseModel):
+    reasoning: str = Field(description="Markdown formatted strategic reasoning")
+    roster: RosterSplit
+
+# ---------------------------------------------------------------------------- #
+#                             Strategy Dispatcher                              #
+# ---------------------------------------------------------------------------- #
 async def generate_roster_strategy(
-    team: str, 
     athlete_data: dict, 
     meet_context: str, 
     provider: str = "gemini"
-) -> (dict, str):
-    """
-    Dispatcher function to route to the correct LLM provider.
-    Returns (roster_dict, reasoning_string)
-    """
+) -> tuple[dict, str]:
+    
     if provider == "gemini":
-        if client is None: 
-            return None, "Error: Gemini client not initialized. Check API key."
-        return await _get_gemini_recommendation(team, athlete_data, meet_context)
+        if not gemini_client: return None, "Error: Gemini Key missing."
+        return await _get_gemini_recommendation(athlete_data, meet_context)
     
-    elif provider == "placeholder":
-        roster, reasoning = _get_placeholder_recommendation()
-        return roster, reasoning
-    
+    elif provider == "openai":
+        if not openai_client: return None, "Error: OpenAI Key missing."
+        return await _get_openai_recommendation(athlete_data, meet_context)
+    elif provider == "groq": 
+        if not groq_client: return None, "Error: Groq Key missing."
+        return await _get_groq_recommendation(athlete_data, meet_context)
     else:
         return None, f"Unknown provider: {provider}"
 
-async def _get_gemini_recommendation(team: str, athlete_data: dict, meet_context: str) -> (dict, str):
+async def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tuple[dict, str]:
     """
     Generates a roster strategy using Google's Gemini.
     This prompt is now tailored to the "event-first" JSON data.
-    """
-    response = None
-    
+    """    
     conference_data = athlete_data["pre_conference_data"]
     
     # PROMPT for TFRRS-style data
-    system_instruction_text = f"""
+    return f"""
     You are "Coach Bowerman," an expert collegiate track and field strategist. 
     Your task is to recommend an optimal roster to maximize team points for the
     season end conference based on historical athlete data and the meet's context.
@@ -96,31 +124,88 @@ async def _get_gemini_recommendation(team: str, athlete_data: dict, meet_context
     }}
     """
     
-    # The user prompt is now just a trigger, since all data is in the system instruction
-    user_prompt_content = [
-        "Please generate the roster strategy based on the context and data I provided in the system instruction."
-    ]
+# ---------------------------------------------------------------------------- #
+#                             Gemini Implementation                            #
+# ---------------------------------------------------------------------------- #
+async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> tuple[dict, str]:
+    system_instruction_text = _build_system_prompt(meet_context, athlete_data)
     
-    # This config object requests JSON output
     generation_config = types.GenerateContentConfig(
-        system_instruction = system_instruction_text,
-        response_mime_type = "application/json",
+        system_instruction=system_instruction_text,
+        response_mime_type="application/json",
+        response_schema=CoachResponse 
     )
     
     try:
-        response = await client.aio.models.generate_content(
-            model=MODEL_NAME,        
-            contents=user_prompt_content,  
+        response = await gemini_client.aio.models.generate_content(
+            model=GEMINI_MODEL,        
+            contents=["Generate roster strategy."],  
             config=generation_config       
         )
-        
-        # Parse the JSON response
         data = json.loads(response.text)
-        
-        # Return the two values
         return data.get("roster"), data.get("reasoning")
 
     except Exception as e:
-        error_msg = f"Error calling Gemini API: {e}\n\nRaw Response: {getattr(response, 'text', 'No response')}"
-        print(error_msg)
-        return None, error_msg
+        return None, f"Gemini Error: {e}"
+    
+# ---------------------------------------------------------------------------- #
+#                             OpenAI Implementation                            #
+# ---------------------------------------------------------------------------- #
+async def _get_openai_recommendation(athlete_data: dict, meet_context: str) -> tuple[dict, str]:
+    system_text = _build_system_prompt(meet_context, athlete_data)
+
+    try:
+        completion = await openai_client.beta.chat.completions.parse(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": system_text},
+                {"role": "user", "content": "Generate roster strategy."},
+            ],
+            response_format=CoachResponse, # Enforce Schema
+        )
+        
+        # Extract the parsed Pydantic object
+        result: CoachResponse = completion.choices[0].message.parsed
+        
+        # Convert back to dict format for the frontend
+        roster_dict = result.roster.model_dump(by_alias=True) 
+        
+        return roster_dict, result.reasoning
+
+    except Exception as e:
+        return None, f"OpenAI Error: {e}"
+    
+async def _get_groq_recommendation(athlete_data: dict, meet_context: str) -> tuple[dict, str]:
+    # Build the prompt
+    system_text = _build_system_prompt(meet_context, athlete_data)
+    
+    # Llama-3 follows this specific instruction well for JSON
+    system_text += "\n\nIMPORTANT: Output ONLY valid JSON matching the schema. No explanations before or after."
+
+    try:
+        chat_completion = await groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_text
+                },
+                {
+                    "role": "user",
+                    "content": "Generate the roster strategy JSON.",
+                }
+            ],
+            model=GROQ_MODEL,
+            
+            response_format={"type": "json_object"}, 
+            
+            temperature=0.1,
+        )
+        
+        # Parse the response
+        raw_content = chat_completion.choices[0].message.content
+        data = json.loads(raw_content)
+        
+        return data.get("roster"), data.get("reasoning")
+
+    except Exception as e:
+        return None, f"Groq Error: {e}"
