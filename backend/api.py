@@ -17,6 +17,7 @@ from . import llm_strategy
 class RosterRequest(BaseModel):
     meet_context: str
     athlete_data: str 
+    provider: str = "gemini"
 
 class DBRequest(BaseModel):
     year: int
@@ -171,7 +172,7 @@ async def generate_roster_endpoint(request: RosterRequest) -> dict:
     roster, reasoning = await llm_strategy.generate_roster_strategy(
         athlete_data=parsed_data,
         meet_context=request.meet_context,
-        provider="gemini" 
+        provider=request.provider
     )
 
     # Handle errors from the LLM
