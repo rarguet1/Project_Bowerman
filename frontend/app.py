@@ -27,8 +27,12 @@ st.sidebar.warning("Make sure the backend API is running. See `README.md` for in
 #                                 Input Form                                   #
 # ---------------------------------------------------------------------------- #
 
-with st.form("roster_form_alt"):
-    st.header("Alt. Form Structure")
+with st.form("roster_form"):
+
+    st.header("Configuration")
+    model_provider = st.selectbox("Select AI Model", ["gemini", "openai"])
+
+    st.header("Input Form")
     st.subheader("Step 1: Choose Scenario")
     
     year_input = st.selectbox('Year', [2021, 2022, 2023, 2024, 2025])  # Removed 2020 b/c Covid
@@ -94,7 +98,8 @@ if alt_submitted:
                 # Create the payload to send to the API
                 payload = {
                     "meet_context": alt_meet_context, 
-                    "athlete_data": athlete_data_string
+                    "athlete_data": athlete_data_string,
+                    "provider": model_provider
                 }
                 
                 response = requests.post(API_URL, json=payload)
@@ -117,7 +122,7 @@ if alt_submitted:
                                 st.subheader("Suggested Men's Roster")
                                 men_list = roster_data.get("men", [])
                                 if men_list:
-                                    st.dataframe(pd.DataFrame(men_list), use_container_width=True)
+                                    st.dataframe(pd.DataFrame(men_list), width='stretch')
                                 else:
                                     st.info("No men's entries generated.")
 
@@ -125,7 +130,7 @@ if alt_submitted:
                                     st.subheader("Suggested Women's Roster")
                                     women_list = roster_data.get("women", [])
                                     if men_list:
-                                        st.dataframe(pd.DataFrame(women_list), use_container_width=True)
+                                        st.dataframe(pd.DataFrame(women_list), width='stretch')
                                     else:
                                         st.info("No men's entries generated.")
                     else:
