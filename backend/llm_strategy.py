@@ -51,25 +51,26 @@ class CoachResponse(BaseModel):
 #                             Strategy Dispatcher                              #
 # ---------------------------------------------------------------------------- #
 async def generate_roster_strategy(
+    team: str,
     athlete_data: dict, 
     meet_context: str, 
-    provider: str = "gemini"
+    provider: str = "gemini",
 ) -> tuple[dict, str]:
     
     if provider == "gemini":
         if not gemini_client: return None, "Error: Gemini Key missing."
-        return await _get_gemini_recommendation(athlete_data, meet_context)
+        return await _get_gemini_recommendation(team, athlete_data, meet_context)
     
     elif provider == "openai":
         if not openai_client: return None, "Error: OpenAI Key missing."
-        return await _get_openai_recommendation(athlete_data, meet_context)
+        return await _get_openai_recommendation(team, athlete_data, meet_context)
     elif provider == "groq": 
         if not groq_client: return None, "Error: Groq Key missing."
-        return await _get_groq_recommendation(athlete_data, meet_context)
+        return await _get_groq_recommendation(team, athlete_data, meet_context)
     else:
         return None, f"Unknown provider: {provider}"
 
-async def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tuple[dict, str]:
+def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tuple[dict, str]:
     """
     Generates a roster strategy using Google's Gemini.
     This prompt is now tailored to the "event-first" JSON data.
@@ -79,8 +80,8 @@ async def _build_system_prompt(team: str, athlete_data: dict, meet_context: str)
     # PROMPT for TFRRS-style data
     return f"""
     You are "Coach Bowerman," an expert collegiate track and field strategist. 
-    Your task is to recommend an optimal roster to maximize team points for the
-    season end conference based on historical athlete data and the meet's context.
+    Your task is to recommend an optimal competition roster to maximize team points for the
+    season end conference meet based on historical athlete data for that season so far and the meet's context.
 
     MEET CONTEXT:
     {meet_context}
@@ -91,26 +92,26 @@ async def _build_system_prompt(team: str, athlete_data: dict, meet_context: str)
     CONFERENCE DATA:
     The following JSON data provides lists of all performances for all teams in the conference meet, organized by SCHOOL, GENDER and then EVENT.
     Each EVENT entry contains [TIME, WINDSPEED, PERFORMANCE DATE]
-    All atheltes that are not in your specified school are competitors.
+    All athletes that are not in your specified school are competitors.
     {json.dumps(conference_data, indent=2)}
 
     *** YOUR TASK ***
     Analyze the provided athlete JSON data and the meet context.
     You are acting as the coach for your collegiate track team. Your job is to enter your athletes in events to maximize cumulative team points scored.
-    Identify the best combination of athletes per and across events based on speed and possible fatigue after multiple events. 
+    Do not consider relays such as the 4x100m or the 4x400m in your analysis.
+    Identify the best combination of athletes per and across events based on speed, possible fatigue after multiple events, and the age and experience level of each athlete(an older athlete may be better equipped to run multiple events as opposed to a younger athlete). 
     Explicitly consider everyone's season performances including your athletes and opposing athletes in the conference and how they may perform against each other.
     Note that the same athlete may appear in multiple event lists.
     YOUR OUTPUT MUST BE A SINGLE, VALID JSON OBJECT with TWO keys:
 
     1.  "reasoning": A markdown-formatted string. Explain your high-level 
-        strategy. Justify your decisions, especially for athletes competing in multiple events (max 4).
+        strategy using conference marks and rankings. Justify your decisions, especially for athletes competing in multiple events (maximum of 4 events per athlete).
     2.  "roster": A list of JSON objects. Each object must have keys:
         "Athlete Name", "Event(s)", and "Notes".
         (Use the "text" field from the data for "Athlete Name").
 
     *** SCORING/RULES ***
     - Scoring by event placement: 10-8-6-5-4-3-2-1
-    - Maximum of 4 athletes per event per school
     
     *** STRICT EXAMPLE OF YOUR FINAL OUTPUT ***
     {{
@@ -127,8 +128,8 @@ async def _build_system_prompt(team: str, athlete_data: dict, meet_context: str)
 # ---------------------------------------------------------------------------- #
 #                             Gemini Implementation                            #
 # ---------------------------------------------------------------------------- #
-async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> tuple[dict, str]:
-    system_instruction_text = _build_system_prompt(meet_context, athlete_data)
+async def _get_gemini_recommendation(team: str, athlete_data: dict, meet_context: str) -> tuple[dict, str]:
+    system_instruction_text = _build_system_prompt(team, athlete_data, meet_context)
     
     generation_config = types.GenerateContentConfig(
         system_instruction=system_instruction_text,
@@ -151,8 +152,8 @@ async def _get_gemini_recommendation(athlete_data: dict, meet_context: str) -> t
 # ---------------------------------------------------------------------------- #
 #                             OpenAI Implementation                            #
 # ---------------------------------------------------------------------------- #
-async def _get_openai_recommendation(athlete_data: dict, meet_context: str) -> tuple[dict, str]:
-    system_text = _build_system_prompt(meet_context, athlete_data)
+async def _get_openai_recommendation(team: str, athlete_data: dict, meet_context: str) -> tuple[dict, str]:
+    system_text = _build_system_prompt(team, athlete_data, meet_context)
 
     try:
         completion = await openai_client.beta.chat.completions.parse(
@@ -175,9 +176,9 @@ async def _get_openai_recommendation(athlete_data: dict, meet_context: str) -> t
     except Exception as e:
         return None, f"OpenAI Error: {e}"
     
-async def _get_groq_recommendation(athlete_data: dict, meet_context: str) -> tuple[dict, str]:
+async def _get_groq_recommendation(team: str, athlete_data: dict, meet_context: str) -> tuple[dict, str]:
     # Build the prompt
-    system_text = _build_system_prompt(meet_context, athlete_data)
+    system_text = _build_system_prompt(team, athlete_data, meet_context)
     
     # Llama-3 follows this specific instruction well for JSON
     system_text += "\n\nIMPORTANT: Output ONLY valid JSON matching the schema. No explanations before or after."
