@@ -6,11 +6,13 @@ from google.genai import types
 from openai import AsyncOpenAI # NEW IMPORT
 from pydantic import BaseModel, Field
 from typing import List
+from groq import AsyncGroq
 
 # ---------------------------- Load env variables ---------------------------- #
 load_dotenv() 
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.2-70b-versatile")
 
 # Initialize Gemini
 try:
@@ -24,6 +26,11 @@ try:
 except Exception:
     openai_client = None
 
+# Initialize Groq
+try:
+    groq_client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
+except Exception:
+    groq_client = None
 # ---------------------------------------------------------------------------- #
 #                           Strict Output Schemas                              #
 # ---------------------------------------------------------------------------- #
@@ -83,7 +90,9 @@ async def generate_roster_strategy(
     elif provider == "openai":
         if not openai_client: return None, "Error: OpenAI Key missing."
         return await _get_openai_recommendation(athlete_data, meet_context)
-    
+    elif provider == "groq": 
+        if not groq_client: return None, "Error: Groq Key missing."
+        return await _get_groq_recommendation(athlete_data, meet_context)
     else:
         return None, f"Unknown provider: {provider}"
 
@@ -131,10 +140,44 @@ async def _get_openai_recommendation(athlete_data: dict, meet_context: str) -> t
         result: CoachResponse = completion.choices[0].message.parsed
         
         # Convert back to dict format for the frontend
-        # .model_dump(by_alias=True) ensures "Athlete Name" keeps its space
         roster_dict = result.roster.model_dump(by_alias=True) 
         
         return roster_dict, result.reasoning
 
     except Exception as e:
         return None, f"OpenAI Error: {e}"
+    
+async def _get_groq_recommendation(athlete_data: dict, meet_context: str) -> tuple[dict, str]:
+    # Build the prompt
+    system_text = _build_system_prompt(meet_context, athlete_data)
+    
+    # Llama-3 follows this specific instruction well for JSON
+    system_text += "\n\nIMPORTANT: Output ONLY valid JSON matching the schema. No explanations before or after."
+
+    try:
+        chat_completion = await groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_text
+                },
+                {
+                    "role": "user",
+                    "content": "Generate the roster strategy JSON.",
+                }
+            ],
+            model=GROQ_MODEL,
+            
+            response_format={"type": "json_object"}, 
+            
+            temperature=0.1,
+        )
+        
+        # Parse the response
+        raw_content = chat_completion.choices[0].message.content
+        data = json.loads(raw_content)
+        
+        return data.get("roster"), data.get("reasoning")
+
+    except Exception as e:
+        return None, f"Groq Error: {e}"

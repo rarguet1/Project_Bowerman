@@ -30,7 +30,7 @@ st.sidebar.warning("Make sure the backend API is running. See `README.md` for in
 with st.form("roster_form"):
 
     st.header("Configuration")
-    model_provider = st.selectbox("Select AI Model", ["gemini", "openai"])
+    model_provider = st.selectbox("Select AI Model", ["gemini", "openai", "groq"])
 
     st.header("Input Form")
     st.subheader("Step 1: Choose Scenario")
