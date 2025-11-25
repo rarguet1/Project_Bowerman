@@ -9,8 +9,9 @@ wheels/
 # Virtual environments
 .venv
 .env
-data/.DS_Store
-data/dev_data/UMBCS_m_performances.json
-data/dev_data/conference_m_s_performance_list.json
-data/dev_data/example_context.txt
+
+# Project-related
+*.json
+*.parquet
 normalized/
+results/

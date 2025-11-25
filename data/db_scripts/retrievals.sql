@@ -1,9 +1,10 @@
 -- DROP FUNCTION IF EXISTS retrieve_team_context(IN season_year INT);
 CREATE OR REPLACE FUNCTION retrieve_team_context(IN season_year INT)
 RETURNS TABLE (
-    ath_name TEXT,
+    ath_id TEXT,
     ath_gender TEXT,
     ath_team TEXT,
+    ath_year TEXT,
     event_type TEXT,
     event_time TEXT,
     event_wind TEXT,
@@ -14,9 +15,10 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        a.full_name::TEXT as ath_name, 
+        a.athlete_id::TEXT as ath_id, 
         a.gender::TEXT as ath_gender,
-        a.school::TEXT as ath_team, 
+        a.school::TEXT as ath_team,
+        p.year::TEXT as ath_year,
         p.event_class::TEXT as event_type, 
         p.time::TEXT as event_time,
         p.wind::TEXT as event_wind,

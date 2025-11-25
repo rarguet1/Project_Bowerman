@@ -34,9 +34,10 @@ def build_payload(fp: PathLike | str) -> list[dict]:
             "wind": wind,
             "meet_date": str(meet_date),
             "gender":gender,
-            "conference_rank":rank
+            "conference_rank":rank,
+            "year": year
         }
-        for athlete, school, event, time, wind, meet_date, gender, rank in zip(
+        for athlete, school, event, time, wind, meet_date, gender, rank, year in zip(
             data['athlete'],
             data['school'],
             data['event'],
@@ -44,7 +45,8 @@ def build_payload(fp: PathLike | str) -> list[dict]:
             data['wind'],
             data['date'],
             data['gender'],
-            data['conference_rank']
+            data['conference_rank'],
+            data['year']
         )
     ]
     return records

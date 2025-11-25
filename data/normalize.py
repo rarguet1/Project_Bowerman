@@ -90,18 +90,20 @@ def performances_norm_df_format(
         "date": [],
         "school": [], 
         "gender": [],
-        "conference_rank": []
+        "conference_rank": [],
+        "year" : []
     }
     for event in data:
         for record in data[event]:
             ret["time"].append(record['time'])
-            ret['wind'].append(record['wind'] if record['wind'] else "UNKNOWN")
+            ret["wind"].append(record['wind'] if record['wind'] else "UNKNOWN")
             ret["school"].append(school if school else "UNKNOWN")
-            ret['date'].append(datetime.strptime(record['meet_date'], '%b %d, %Y').date())
+            ret["date"].append(datetime.strptime(record['meet_date'], '%b %d, %Y').date())
             ret["athlete"].append(record['athlete']['text'])
             ret["event"].append(event)
             ret["gender"].append(gender if gender else "UNKNOWN")
             ret["conference_rank"].append("UKNOWN")
+            ret["year"].append(record["year"] if record["year"] else "UNKOWN")
     
     return ret
 
@@ -118,7 +120,8 @@ def conference_norm_df_format(
         "date": [],
         "school": [], 
         "gender": [],
-        "conference_rank": []
+        "conference_rank": [],
+        "year": []
     }
     for event in data:
         for record in data[event]:
@@ -130,6 +133,8 @@ def conference_norm_df_format(
             ret["school"].append(record["team"])
             ret["gender"].append(record["gender"] if record["gender"] else "UNKNOWN")
             ret["conference_rank"].append(record["conference_rank"])
+            ret["year"].append(record["year"] if record["year"] else "UNKOWN")
+
     return ret
 
 
@@ -151,19 +156,16 @@ def main() -> None:
         action="store_true",
         help="""An option if you want to immediately redirect/pipe a dataframe friendly json \
             otherwise this will write to normalized/ directory.""",
-        metavar="<stdout>"
     )
     parser.add_argument(
         "--perf",
         action="store_true",
         help="Specify this option for performance list format",
-        metavar="<perf>"
     )
     parser.add_argument(
         "--conf",
         action="store_true",
         help="Specify this option for conference list format",
-        metavar="<conf>"
     )
 
     # school_gender_*.json

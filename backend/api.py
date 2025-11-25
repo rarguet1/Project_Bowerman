@@ -9,8 +9,8 @@ from supabase import Client
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-# import llm_strategy 
-from . import llm_strategy 
+import llm_strategy 
+# from . import llm_strategy 
 
 # uvicorn api:app --reload
 
@@ -82,15 +82,17 @@ async def query_db_for_team_context(year: int) -> tuple[dict | None, str | None]
 
         if response.data:
             for row in response.data:
-                school=row["ath_team"]; event=row["event_type"]; name=row["ath_name"]; gender=row["ath_gender"]
+                school=row["ath_team"]; gender=row["ath_gender"]; event=row["event_type"]
                 stats = row["event_time"], row['event_wind'], row['event_date']
+                ath_year=row['ath_year']
+                name = f"ATH_{row['ath_id']:04d}"
                 
                 # adding school/team
                 if school not in ret:
                     ret[school] = {
                         gender: {
                             event : {
-                                name : [stats]
+                                (name, ath_year) : [stats]
                             }
                         }
                     }
@@ -99,20 +101,20 @@ async def query_db_for_team_context(year: int) -> tuple[dict | None, str | None]
                 elif gender not in ret[school]:
                     ret[school][gender] = {
                         event : {
-                            name : [stats]
+                            (name, ath_year) : [stats]
                         }
                     }
                 
                 # adding event for team
                 elif event not in ret[school][gender]:
-                    ret[school][gender][event] = {name : [stats]}
+                    ret[school][gender][event] = {(name, ath_year) : [stats]}
 
                 # adding athlete to event
                 elif name not in ret[school][gender][event]:
-                    ret[school][gender][event][name] = [stats]
+                    ret[school][gender][event][(name, ath_year)] = [stats]
                 
                 else:
-                    ret[school][gender][event][name].append(stats)
+                    ret[school][gender][event][(name, ath_year)].append(stats)
 
     except Exception as e:
         error = f"ERROR calling RETRIEVE_TEAM_CONTEXT(): {e}"
@@ -133,7 +135,8 @@ async def query_db_for_conference_context(year: int) -> tuple[dict | None, str |
 
         if response.data:
             for row in response.data:
-                school=row["ath_team"]; event=row["event_type"]; name=row["ath_name"]; gender=row["ath_gender"]
+                school=row["ath_team"]; event=row["event_type"]; gender=row["ath_gender"]
+                name = f"ATH_{row['ath_name']:04d}"
 
                 # adding school/team
                 if school not in ret:

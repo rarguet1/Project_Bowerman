@@ -8,5 +8,5 @@ fi
 
 for file in "$INPUT_JSON_DIR"*; do
     echo "Processing: $file"
-    python normalize.py "$file" --stdout | python ingest.py
+    python normalize.py "$file" --conf --stdout | python ingest.py
 done

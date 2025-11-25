@@ -37,6 +37,7 @@ BEGIN
         -- into performances
         INSERT INTO performances (
             athlete_id,
+            student_year,
             event_class,
             time,
             wind,
@@ -45,6 +46,7 @@ BEGIN
         )
         VALUES (
             ath_id,
+            record->>'year'
             record->>'event_class',
             record->>'time',
             record->>'wind',
