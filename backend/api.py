@@ -85,7 +85,7 @@ async def query_db_for_team_context(year: int) -> tuple[dict | None, str | None]
                 school=row["ath_team"]; gender=row["ath_gender"]; event=row["event_type"]
                 stats = row["event_time"], row['event_wind'], row['event_date']
                 ath_year=row['ath_year']
-                name = f"ATH_{row['ath_id']:04d}"
+                name = f"ATH_{row['ath_id']:05d}"
                 
                 # adding school/team
                 if school not in ret:
@@ -136,7 +136,7 @@ async def query_db_for_conference_context(year: int) -> tuple[dict | None, str |
         if response.data:
             for row in response.data:
                 school=row["ath_team"]; event=row["event_type"]; gender=row["ath_gender"]
-                name = f"ATH_{row['ath_name']:04d}"
+                name = f"ATH_{row['ath_name']:05d}"
 
                 # adding school/team
                 if school not in ret:
