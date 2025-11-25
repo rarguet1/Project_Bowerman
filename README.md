@@ -45,10 +45,10 @@ This will automatically open the Streamlit application in your web browser.
 ## 5. Screenshots
 # Data input
 Input data is gratiously provided UMBC_f_performances.json.
-![alt text](image.png)
+![alt text](./images/image.png)
 # Example context input
-![alt text](image-1.png)
+![alt text](./images/image-1.png)
 # Reasoning output example
-![alt text](image-2.png)
+![alt text](./images/image-2.png)
 # Roster output example
-![alt text](image-3.png)
+![alt text](./images/image-3.png)
