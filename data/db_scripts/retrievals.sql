@@ -98,3 +98,15 @@ BEGIN
     ORDER BY meet_year ASC;
 END;
 $$;
+
+-- DROP FUNCTION IF EXISTS get_events();
+CREATE OR REPLACE FUNCTION get_events()
+RETURNS TABLE (event_type TEXT)
+LANGUAGE PLPGSQL
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT DISTINCT(event_class)::TEXT
+    FROM performances;
+END;
+$$;
