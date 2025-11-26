@@ -19,6 +19,7 @@ def save_results(
         team: str,
         year: str,
         prefix: str,
+        gender: str
 ) -> None:
     """Writes roster selections to results/ directory
     
@@ -32,18 +33,23 @@ def save_results(
     
     year : str
         the year the roster selections were created for
+
+    gender: str
+        the gender the roster selections were created for
     
-    prefix : 
+    prefix : str
         helper to specify what type of results generated the roster selections (e.g., greedy, gemini, etc)
     """ 
     dest_dir = Path(__file__).expanduser().resolve().parent / "results"
     dest_dir.mkdir(exist_ok=True)
-    filename = f"{prefix}_{team}_{year}_results.parquet"
+    filename = f"{prefix}_{team}_{year}_{gender}_results.parquet"
     
     if isinstance(data, dict):
-        pd.DataFrame(data).to_parquet(dest_dir / filename)
+        df_dict = {key: pd.Series(value) for key, value in data.items()}
+        pd.DataFrame(df_dict).to_parquet(dest_dir / filename)
     else:
         data.to_parquet(dest_dir / filename)
+
 
 async def get_available_years_teams() -> list[dict] | None:
     """Retrieves teams and years we can run the experiments with
@@ -61,3 +67,14 @@ async def get_available_years_teams() -> list[dict] | None:
     response = supabase.rpc("get_teams_years").execute()
     return response.data if response.data else None
 
+
+async def get_all_events() -> list[dict] | None:
+    """Retrieves events and events we can run experiments with
+    
+    Returns
+    -------
+    output : list[dict] | None
+        returns a list of dictionaries retrieved from database with distinct events
+    """
+    response = supabase.rpc("get_events").execute()
+    return response.data if response.data else None

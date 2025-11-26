@@ -11,6 +11,7 @@ from supabase import Client
 
 from utils import save_results
 from utils import get_available_years_teams
+from utils import get_all_events
 
 load_dotenv()
 url: str = os.environ.get("SUPABASE_URL")
@@ -20,8 +21,9 @@ supabase: Client = create_client(url, key)
 async def retrieve_event_performances(
         team: str,
         year: int,
-        event: str
-) -> tuple[dict | None, str | None]:
+        event: str,
+        gender: str
+) -> tuple[list[dict] | None, str | None]:
     """asdf"""
     ret={}; error=None
     try:
@@ -31,7 +33,8 @@ async def retrieve_event_performances(
                 {
                     "season_year" : year,
                     "team" : team,
-                    "event_class" : event,
+                    "event_type" : event,
+                    "ath_gender" : gender
                 }
             )
             .execute()
@@ -43,5 +46,79 @@ async def retrieve_event_performances(
     
     return ret, error
 
-def greedy_selector() -> None:
-    pass
+def greedy_selector(
+        data: dict,
+        k: int
+) -> list[tuple[str, str, float]]:
+    """Provided some data retrieves the top-k athletes
+    
+    Notes
+    -----
+    If k > the number of unique athletes it will however many are available 
+    """
+    def _parse_time(time: str) -> float:
+        """Sometimes perf times are ss.ss sometimes they are mm:ss.ss so this helper is needed..."""
+        if ":" not in time:
+            return float(time)
+        else:
+            t = time.split(":")
+            mins, secs = float(t[0]), float(t[1])
+            return mins*60 + secs
+    
+    candidates = {}
+
+    for row in data:
+        name = row['ath_name']
+        time= _parse_time(row['event_time'])
+        id = f"{row['ath_id']:05d}"
+
+        if name not in candidates or time <= candidates[name][2]:
+            candidates[name] = (id, name, time)
+
+    ret = [row[0] for row in sorted(candidates.values(), key=lambda t: t[2])]
+    return ret[:k]
+
+async def build_greedy_roster() -> None:
+    events = [event['event_type'] for event in await get_all_events()]
+    combinations = await get_available_years_teams()
+
+    for entry in combinations:
+        mens_results = {}
+        womens_results = {}
+        
+        for event in events:
+            performances_m, error = await retrieve_event_performances(
+                team=entry['school'], 
+                year=int(entry['season_year']),
+                event=event,
+                gender="M"
+            )
+            if error:
+                print(f"RIP, this broke fix it later...{error}")
+                
+            performances_f, error = await retrieve_event_performances(
+                team=entry['school'], 
+                year=int(entry['season_year']),
+                event=event,
+                gender="F"
+            )
+            if error:
+                print(f"RIP, this broke fix it later...{error}")
+
+            mens_results[event] = greedy_selector(data=performances_m, k=6)
+            womens_results[event] = greedy_selector(data=performances_f, k=6)
+            
+        save_results(
+            data=mens_results,
+            team=entry['school'],
+            year=entry['season_year'],
+            prefix='greedy',
+            gender="M"
+        )
+        save_results(
+            data=womens_results,
+            team=entry['school'],
+            year=entry['season_year'],
+            prefix='greedy',
+            gender="F"
+        )
