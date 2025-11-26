@@ -95,6 +95,51 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     All athletes that are not in your specified school are competitors.
     {json.dumps(conference_data, indent=2)}
 
+    MEET SCHEDULE:
+    OUTDOOR AMERICA EAST TRACK AND FIELD CHAMPIONSHIPS
+    SCHEDULE OF EVENTS
+    DAY 1
+
+    1:00 p.m 		Women's 1500 Meter 			        Trials
+    1:30 p.m. 		Men's 1500 Meter 			        Trials
+    2:00 p.m.		Women's 100 Meter Hurdles	        Trials
+    2:10 p.m.	  	Men's 110 Meter Hurdles		        Trials
+    2:25 p.m. 		Women's 400 Meter 			        Trials
+    2:35 p.m. 		Men's 400 Meter		 		        Trials
+    2:45 p.m. 		Women's 800 Meter 			        Trials
+    2:55 p.m. 		Men's 800 Meter 			        Trials
+    3:05 p.m.		Women's 100 Meter 			        Trials
+    3:15 p.m.		Men's 100 Meter				        Trials
+    3:35 p.m.		Women's 400 Meter Hurdles	        Trials
+    3:50 p.m.		Men's 400 Meter Hurdles	            Trials
+    4:10 p.m.		Women's 3000 Meter Steeplechase	    Finals
+    4:30 p.m.	 	Men's 3000 Meter Steeplechase		Finals
+    4:45 p.m.		Women's 200 Meter 			        Trials
+    4:55 p.m.		Men's 200 Meter				        Trials
+    5:05 p.m.		Women's 10,000 Meter			    Finals
+    5:50 p.m.		Men's 10,000 Meter				    Finals
+
+
+    DAY 2
+    11:30 a.m.		Women's 1500 Meter			    Final
+    11:45 a.m.		Men's   1500 Meter				Final
+    12:00 p.m.		Women's 400 Meter				Final
+    12:05 p.m.		Men's	400 Meter				Final
+    12:15 p.m.		Women's 100 Meter Hurdles		Final
+    12:25 p.m.		Men's	100 Meter Hurdles		Final
+    12:35 p.m.		Women's 800 Meter				Final
+    12:45 p.m.		Men's	800 Meter				Final
+    12:55 p.m.		Women's 100 Meter				Final
+    1:00 p.m.		Men's	100 Meter				Final
+    1:10 p.m.		Women's 400 Meter Hurdles		Final
+    1:20 p.m.		Men's   400 Meter Hurdles		Final
+    1:30 p.m.		Women's 200 Meter				Final
+    1:35 p.m.		Men's	200 Meter				Final
+    1:45 p.m.		Women's 5000 Meter			    Final
+    2:05 p.m.		Men's	5000 Meter				Final
+
+
+
     *** YOUR TASK ***
     Analyze the provided athlete JSON data and the meet context.
     You are acting as the coach for your collegiate track team. Your job is to enter your athletes in events to maximize cumulative team points scored.
@@ -102,6 +147,7 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     Identify the best combination of athletes per and across events based on speed, possible fatigue after multiple events, and the age and experience level of each athlete(an older athlete may be better equipped to run multiple events as opposed to a younger athlete). 
     Explicitly consider everyone's season performances including your athletes and opposing athletes in the conference and how they may perform against each other.
     Note that the same athlete may appear in multiple event lists.
+    You are able to enter as many athletes in an event as you want but consider that there are costs involved with transporting and housing athletes at the conference meet, so athletes that are extremely unlikely to score points should be left at home.
     YOUR OUTPUT MUST BE A SINGLE, VALID JSON OBJECT with TWO keys:
 
     1.  "reasoning": A markdown-formatted string. Explain your high-level 
