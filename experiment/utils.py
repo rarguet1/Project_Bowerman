@@ -20,7 +20,8 @@ def save_results(
         team: str,
         year: str,
         prefix: str,
-        gender: str
+        gender: str,
+        subfolder: str = None
 ) -> None:
     """Writes roster selections to results/ directory
     
@@ -40,6 +41,9 @@ def save_results(
     
     prefix : str
         helper to specify what type of results generated the roster selections (e.g., greedy, gemini, etc)
+    
+    subfolder : str
+        dir results are saved to (eg. results/gemini-2.0-flash/)
     """ 
 
     # Base results directory
