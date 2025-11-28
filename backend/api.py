@@ -9,8 +9,8 @@ from supabase import Client
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-import llm_strategy 
-# from . import llm_strategy 
+# import llm_strategy 
+from . import llm_strategy 
 
 # uvicorn api:app --reload
 
