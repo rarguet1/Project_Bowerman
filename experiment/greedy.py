@@ -97,3 +97,8 @@ async def build_greedy_roster() -> None:
             prefix='greedy',
             gender="F"
         )
+
+if __name__ == "__main__":
+    import asyncio
+    # Run the main async function
+    asyncio.run(build_greedy_roster())
