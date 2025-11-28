@@ -2,6 +2,7 @@
 CREATE OR REPLACE FUNCTION retrieve_team_context(IN season_year INT)
 RETURNS TABLE (
     ath_id INT,
+    ath_name TEXT,
     ath_gender TEXT,
     ath_team TEXT,
     ath_year TEXT,
@@ -15,10 +16,11 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        a.athlete_id as ath_id, 
+        a.athlete_id as ath_id,
+        a.full_name::TEXT as ath_name,
         a.gender::TEXT as ath_gender,
         a.school::TEXT as ath_team,
-        p.year::TEXT as ath_year,
+        p.student_year::TEXT as ath_year,
         p.event_class::TEXT as event_type, 
         p.time::TEXT as event_time,
         p.wind::TEXT as event_wind,
@@ -32,6 +34,7 @@ $$;
 -- DROP FUNCTION IF EXISTS retrieve_conference_context(IN season_year INT);
 CREATE OR REPLACE FUNCTION retrieve_conference_context(IN season_year INT)
 RETURNS TABLE (
+    ath_id INT,
     ath_name TEXT,
     ath_gender TEXT,
     ath_team TEXT,
@@ -42,7 +45,8 @@ LANGUAGE PLPGSQL
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
+        a.athlete_id as ath_id, 
         a.full_name::TEXT as ath_name,
         a.gender::TEXT as ath_gender,
         a.school::TEXT as ath_team,

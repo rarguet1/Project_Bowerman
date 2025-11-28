@@ -85,14 +85,15 @@ async def query_db_for_team_context(year: int) -> tuple[dict | None, str | None]
                 school=row["ath_team"]; gender=row["ath_gender"]; event=row["event_type"]
                 stats = row["event_time"], row['event_wind'], row['event_date']
                 ath_year=row['ath_year']
-                name = f"ATH_{row['ath_id']:05d}"
+                id = f"ATH_{row['ath_id']:05d}"
+                name = row['ath_name']
                 
                 # adding school/team
                 if school not in ret:
                     ret[school] = {
                         gender: {
                             event : {
-                                (name, ath_year) : [stats]
+                                (name, id, ath_year) : [stats]
                             }
                         }
                     }
@@ -101,20 +102,20 @@ async def query_db_for_team_context(year: int) -> tuple[dict | None, str | None]
                 elif gender not in ret[school]:
                     ret[school][gender] = {
                         event : {
-                            (name, ath_year) : [stats]
+                            (name, id, ath_year) : [stats]
                         }
                     }
                 
                 # adding event for team
                 elif event not in ret[school][gender]:
-                    ret[school][gender][event] = {(name, ath_year) : [stats]}
+                    ret[school][gender][event] = {(name, id, ath_year) : [stats]}
 
                 # adding athlete to event
                 elif name not in ret[school][gender][event]:
-                    ret[school][gender][event][(name, ath_year)] = [stats]
+                    ret[school][gender][event][(name, id, ath_year)] = [stats]
                 
                 else:
-                    ret[school][gender][event][(name, ath_year)].append(stats)
+                    ret[school][gender][event][(name, id, ath_year)].append(stats)
 
     except Exception as e:
         error = f"ERROR calling RETRIEVE_TEAM_CONTEXT(): {e}"
@@ -136,26 +137,27 @@ async def query_db_for_conference_context(year: int) -> tuple[dict | None, str |
         if response.data:
             for row in response.data:
                 school=row["ath_team"]; event=row["event_type"]; gender=row["ath_gender"]
-                name = f"ATH_{row['ath_name']:05d}"
+                id = f"ATH_{row['ath_id']:05d}"
+                name = row['ath_name']
 
                 # adding school/team
                 if school not in ret:
                     ret[school] = {
                         gender : {
-                            event : [name]
+                            event : [(name,id)]
                         }
                     }
                 
                 # adding gender for school
                 elif gender not in ret[school]:
-                    ret[school][gender] = {event : [name]}
+                    ret[school][gender] = {event : [(name,id)]}
 
                 # adding event for team
                 elif event not in ret[school][gender]:
-                    ret[school][gender][event] = [name]
+                    ret[school][gender][event] = [(name,id)]
                 
                 else:
-                    ret[school][gender][event].append(name)
+                    ret[school][gender][event].append((name,id))
 
     except Exception as e:
         error = f"ERROR calling RETRIEVE_CONFERENCE_CONTEXT(): {e}"

@@ -1,23 +1,12 @@
 """Script to greedily select roster entries"""
 from __future__ import annotations
 
-import os
-
-from dotenv import load_dotenv
-from supabase import create_client
-from supabase import Client
-
 from utils import (
     save_results,
     retrieve_event_performances,
     get_available_years_teams,
     get_all_events
 )
-
-load_dotenv()
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
 
 def greedy_selector(
         data: dict,
