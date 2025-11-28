@@ -41,8 +41,17 @@ def save_results(
     prefix : str
         helper to specify what type of results generated the roster selections (e.g., greedy, gemini, etc)
     """ 
-    dest_dir = Path(__file__).expanduser().resolve().parent / "results"
-    dest_dir.mkdir(exist_ok=True)
+
+    # Base results directory
+    base_dir = Path(__file__).expanduser().resolve().parent / "results"
+    
+    # If a subfolder is provided, append it to the path
+    if subfolder:
+        dest_dir = base_dir / subfolder
+    else:
+        dest_dir = base_dir
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    
     filename = f"{prefix}_{team}_{year}_{gender}_results.parquet"
     
     if isinstance(data, dict):
