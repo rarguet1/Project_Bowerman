@@ -4,7 +4,6 @@ from __future__ import annotations
 import os
 from os import PathLike
 from pathlib import Path
-
 import pandas as pd
 from dotenv import load_dotenv
 from supabase import create_client
@@ -58,12 +57,18 @@ def save_results(
     
     filename = f"{prefix}_{team}_{year}_{gender}_results.parquet"
     
+    # CASE 1: Data is a Dictionary (Greedy logic)
     if isinstance(data, dict):
         df_dict = {key: pd.Series(value) for key, value in data.items()}
         pd.DataFrame(df_dict).to_parquet(dest_dir / filename)
+        
+    # CASE 2: Data is a List (LLM logic)
+    elif isinstance(data, list):
+        pd.DataFrame(data).to_parquet(dest_dir / filename)
+
+    # CASE 3: Data is already a DataFrame
     else:
         data.to_parquet(dest_dir / filename)
-
 
 async def get_available_years_teams() -> list[dict] | None:
     """Retrieves teams and years we can run the experiments with
