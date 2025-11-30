@@ -143,9 +143,13 @@ async def run_evaluation():
                 # Load Results (Translates IDs -> Names)
                 pred_set = load_results(path, fmt, id_map)
                 
-                if not pred_set: continue
+                if not pred_set: 
+                    print("Not found: " + path)
+                    continue
 
                 tp = len(gt_set.intersection(pred_set))
+                fn = len(gt_set.difference(pred_set))
+                fp = len(pred_set.difference(gt_set))
                 recall = tp / len(gt_set) if gt_set else 0
                 prec = tp / len(pred_set) if pred_set else 0
 
@@ -153,7 +157,7 @@ async def run_evaluation():
                 
                 results.append({
                     "Team": team, "Year": year, "Gender": gender, "Model": model,
-                    "Recall": recall, "Precision": prec, "TP": tp, "Total_Actual": len(gt_set), "Total_Pred": len(pred_set)
+                    "Recall": recall, "Precision": prec, "TP": tp, "FN": fn, "FP": fp, "Total_Actual": len(gt_set), "Total_Pred": len(pred_set)
                 })
 
     if results:
