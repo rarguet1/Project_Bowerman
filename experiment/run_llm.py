@@ -1,6 +1,7 @@
 """
 Script to run LLM Roster Generation experiments.
-Compatible with both Limited (Free/Tier 0) and Unlimited (Tier 1) models.
+STRATEGY: Full Context (No Filtering). Relying on LLM intelligence.
+INCLUDES: Resume Logic (Skips already processed teams).
 """
 from __future__ import annotations
 
@@ -53,9 +54,16 @@ MEET_CONTEXT_TEMPLATE = (
 
 # ---------------------------- Data Fetching ---------------------------- #
 async def fetch_team_context(year: int) -> dict:
+    """
+    Fetches context from DB.
+    NO FILTERING: Retrieves all available data for the season.
+    The LLM must discern its own team from opponents.
+    """
     ret = {}
     try:
+        # We do NOT pass 'target_team' here, so we get the full dataset
         response = supabase.rpc("retrieve_team_context", {"season_year": year}).execute()
+        
         if response.data:
             for row in response.data:
                 school = row["ath_team"]
@@ -84,6 +92,8 @@ async def fetch_team_context(year: int) -> dict:
 async def run_llm_experiment(provider="gemini"):
     print(f"Starting Experiment with {provider} using model {current_model}")
     print(f"Settings: Delay={DELAY_BETWEEN_CALLS}s, Max Requests={MAX_REQUESTS_PER_RUN}")
+    print(f"Resume Mode: ON (Checking {RESULTS_SUBFOLDER})")
+    print(f"Strategy: UNFILTERED (Sending full context to LLM)")
     print("-" * 50)
     
     combinations = await get_available_years_teams()
@@ -102,13 +112,19 @@ async def run_llm_experiment(provider="gemini"):
         team = entry['school']
         year = int(entry['season_year'])
         
+        # ---------------- RESUME LOGIC ---------------- #
+        # Check if the reasoning file already exists in the model's subfolder
+        base_dir = Path(__file__).resolve().parent / "results"
+        check_path = base_dir / RESULTS_SUBFOLDER / f"llm_{provider}_{team}_{year}_reasoning.txt"
+        
+        if check_path.exists():
+            print(f"[{i+1}/{total}] Skipping {team} - {year} (Already done)")
+            continue
+        # ---------------------------------------------- #
+        
         print(f"[{i+1}/{total}] Processing: {team} - {year}...", end=" ", flush=True)
 
-        # Fetch Data
         full_team_data = await fetch_team_context(year)
-        if team not in full_team_data:
-            print("Skipped (No Context)")
-            continue
             
         athlete_data_payload = {"pre_conference_data": full_team_data}
         dynamic_meet_context = MEET_CONTEXT_TEMPLATE.format(team=team)
@@ -126,25 +142,19 @@ async def run_llm_experiment(provider="gemini"):
                 )
 
                 if roster:
-                    print(f"\n[DEBUG] Raw Roster Keys: {roster.keys()}")
-                    print(f"[DEBUG] Men's Count: {len(roster.get('men', []))}")
-                    print(f"[DEBUG] Women's Count: {len(roster.get('women', []))}")
-                else:
-                    print("\n[DEBUG] Roster object is None/Empty")
-
-                if roster:
-                    # Define the exact path to experiment/results
-                    base_dir = Path(__file__).resolve().parent / "results"
+                    # Define save directory
                     save_dir = base_dir / RESULTS_SUBFOLDER
                     save_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    # Normalize keys
                     roster_keys = {k.lower(): v for k, v in roster.items()}
 
                     # Save Men
-                    if "men" in roster:
-                        save_results(roster["men"], team, year, f"llm_{provider}", "M", subfolder=RESULTS_SUBFOLDER)
+                    if "men" in roster_keys:
+                        save_results(roster_keys["men"], team, year, f"llm_{provider}", "M", subfolder=RESULTS_SUBFOLDER)
                     # Save Women
-                    if "women" in roster:
-                        save_results(roster["women"], team, year, f"llm_{provider}", "F", subfolder=RESULTS_SUBFOLDER)
+                    if "women" in roster_keys:
+                        save_results(roster_keys["women"], team, year, f"llm_{provider}", "F", subfolder=RESULTS_SUBFOLDER)
                     
                     # Save Reasoning Text
                     txt_filename = f"llm_{provider}_{team}_{year}_reasoning.txt"
