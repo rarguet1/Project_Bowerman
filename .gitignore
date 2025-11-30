@@ -15,3 +15,12 @@ wheels/
 *.parquet
 normalized/
 results/
+debug_ghost_id.py
+.gitignore
+.gitignore
+gemini-2.0-flash-lite_logs.txt
+gemini-2.5-flash_logs.txt
+gemini-2.5-flash-light_logs.txt
+.gitignore
+debug_missing_data.py
+gemini-2.5-pro_logs.txt
