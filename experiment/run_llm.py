@@ -23,7 +23,27 @@ from experiment.utils import save_results, get_available_years_teams
 # ---------------------------- Configuration ---------------------------- #
 load_dotenv()
 supabase: Client = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
-current_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+
+# Determine Provider & Model from Env
+PROVIDER = os.environ.get("LLM_PROVIDER", "gemini")
+
+if PROVIDER == "openai":
+    current_model = os.environ.get("OPENAI_MODEL", "gpt-4o")
+    DELAY_BETWEEN_CALLS = 1 # 1s is polite
+    MAX_REQUESTS_PER_RUN = 1000
+    
+elif PROVIDER == "gemini":
+    current_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+    HIGH_SPEED_MODELS = ["gemini-2.0-flash", "gemini-2.0_flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
+    if current_model in HIGH_SPEED_MODELS:
+        DELAY_BETWEEN_CALLS = 0
+        MAX_REQUESTS_PER_RUN = 1000
+    else:
+        DELAY_BETWEEN_CALLS = 3
+        MAX_REQUESTS_PER_RUN = 100
+
+# Folder Name is just the model name
+RESULTS_SUBFOLDER = current_model
 
 # Define High Speed Models
 HIGH_SPEED_MODELS = [
@@ -40,8 +60,8 @@ if current_model in HIGH_SPEED_MODELS:
     MAX_REQUESTS_PER_RUN = 1000
 else:
     print(f"Model {current_model} not in high-speed list. Defaulting to Safe Mode.")
-    DELAY_BETWEEN_CALLS = 10     
-    MAX_REQUESTS_PER_RUN = 50    
+    DELAY_BETWEEN_CALLS = 3     
+    MAX_REQUESTS_PER_RUN = 100    
 
 RESULTS_SUBFOLDER = current_model 
 
@@ -182,4 +202,5 @@ async def run_llm_experiment(provider="gemini"):
             await asyncio.sleep(DELAY_BETWEEN_CALLS)
 
 if __name__ == "__main__":
-    asyncio.run(run_llm_experiment(provider="gemini"))
+    selected_provider = os.environ.get("LLM_PROVIDER", "gemini")
+    asyncio.run(run_llm_experiment(provider=selected_provider))
