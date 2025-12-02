@@ -18,6 +18,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import from backend
 from backend import llm_strategy
+from backend import api
 from experiment.utils import save_results, get_available_years_teams
 
 # ---------------------------- Configuration ---------------------------- #
@@ -108,6 +109,24 @@ async def fetch_team_context(year: int) -> dict:
         print(f"DB Error: {e}")
     return ret
 
+async def fetch_team_opponent_context(
+        team: str,
+        year: int
+) -> dict:
+    """Fetches team and opponent context from db"""
+    team_data, team_error = await api.query_db_for_team_context(team, year)
+    if team_error:
+        pass
+    
+    opponent_data, opponent_error = await api.query_db_for_opponent_context_agg(team, year)
+    if opponent_error:
+        pass
+
+    combined = opponent_data
+    combined[team] = team_data[team]
+    
+    return combined
+
 # ---------------------------- Main Loop ---------------------------- #
 async def run_llm_experiment(provider="gemini"):
     print(f"Starting Experiment with {provider} using model {current_model}")
@@ -144,7 +163,8 @@ async def run_llm_experiment(provider="gemini"):
         
         print(f"[{i+1}/{total}] Processing: {team} - {year}...", end=" ", flush=True)
 
-        full_team_data = await fetch_team_context(year)
+        #full_team_data = await fetch_team_context(year)
+        full_team_data = await fetch_team_opponent_context(team, year)
             
         athlete_data_payload = {"pre_conference_data": full_team_data}
         dynamic_meet_context = MEET_CONTEXT_TEMPLATE.format(team=team)

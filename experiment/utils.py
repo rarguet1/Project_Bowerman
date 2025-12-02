@@ -20,7 +20,7 @@ def save_results(
         year: str,
         prefix: str,
         gender: str,
-        subfolder: str = None
+        subfolder: str | None = None
 ) -> None:
     """Writes roster selections to results/ directory
     
@@ -41,7 +41,7 @@ def save_results(
     prefix : str
         helper to specify what type of results generated the roster selections (e.g., greedy, gemini, etc)
     
-    subfolder : str
+    subfolder : str | None
         dir results are saved to (eg. results/gemini-2.0-flash/)
     """ 
 
@@ -69,6 +69,7 @@ def save_results(
     # CASE 3: Data is already a DataFrame
     else:
         data.to_parquet(dest_dir / filename)
+
 
 async def get_available_years_teams() -> list[dict] | None:
     """Retrieves teams and years we can run the experiments with

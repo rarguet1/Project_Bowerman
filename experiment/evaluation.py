@@ -123,6 +123,7 @@ async def run_evaluation():
                 if not gt_set: continue
 
                 llm_path = f"{base_dir}/{model_name}/llm_gemini_{team}_{year}_{gender}_results.parquet"
+                greedy_path = f"{base_dir}/{model_name}/greedy_{team}_{year}_{gender}_results.parquet"
 
                 pred_set, ghost_count = load_results(llm_path, "llm", year_maps[year])
                 

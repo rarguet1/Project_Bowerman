@@ -64,11 +64,14 @@ async def generate_roster_strategy(
     elif provider == "openai":
         if not openai_client: return None, "Error: OpenAI Key missing."
         return await _get_openai_recommendation(team, athlete_data, meet_context)
+    
     elif provider == "groq": 
         if not groq_client: return None, "Error: Groq Key missing."
         return await _get_groq_recommendation(team, athlete_data, meet_context)
+    
     else:
         return None, f"Unknown provider: {provider}"
+
 
 def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tuple[dict, str]:
     """
@@ -76,6 +79,7 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     This prompt is now tailored to the "event-first" JSON data.
     """    
     conference_data = athlete_data["pre_conference_data"]
+    team_context = conference_data.pop(team)
     
     # PROMPT for TFRRS-style data
     return f"""
@@ -86,11 +90,12 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     MEET CONTEXT:
     {meet_context}
     
-    TEAM NAME:
-    {team}
+    TEAM NAME: {team}
+    The following JSON data provides lists of all performances for your team.
+    {json.dumps(team_context, indent=2)}
     
     CONFERENCE DATA:
-    The following JSON data provides lists of all performances for all teams in the conference meet, organized by SCHOOL, GENDER and then EVENT.
+    The following JSON data provides lists of all performances for all opponent teams in the conference meet, organized by SCHOOL, GENDER and then EVENT.
     Each EVENT entry contains [TIME, WINDSPEED, PERFORMANCE DATE]
     All athletes that are not in your specified school are competitors.
     {json.dumps(conference_data, indent=2)}
