@@ -65,62 +65,101 @@ def process_and_validate_data(athlete_data_text: str) -> tuple[dict, str]:
     except Exception as e:
         return None, f"An unexpected error occurred during validation: {e}"
 
-# This function should query the backend database for enries that fit 
-# the given constraints and create a team context dict with the athlete performances
-# with potential repeats and a conference context dict with either top results or all results
-async def query_db_for_team_context(year: int) -> tuple[dict | None, str | None]:
+
+def _parse_context(data: list[dict]) -> dict:
+    """Helper to parse db team context to format"""
+    ret = {}
+    for row in data:
+        stats = row["event_time"], row['event_wind'], row['event_date']
+        school=row["ath_team"]; gender=row["ath_gender"]; event=row["event_type"]
+        name = row['ath_name']; ath_year=row['ath_year']; id = f"ATH_{row['ath_id']:05d}"
+        key = f"{id} ({ath_year})"
+        
+        # adding school/team
+        if school not in ret:
+            ret[school] = {
+                gender: {
+                    event : {
+                        key : [stats]
+                    }
+                }
+            }
+
+        # adding gender for team
+        elif gender not in ret[school]:
+            ret[school][gender] = {
+                event : {
+                    key : [stats]
+                }
+            }
+        
+        # adding event for team
+        elif event not in ret[school][gender]:
+            ret[school][gender][event] = {key: [stats]}
+
+        # adding athlete to event
+        elif name not in ret[school][gender][event]:
+            ret[school][gender][event][key] = [stats]
+        
+        else:
+            ret[school][gender][event][key].append(stats)
+    
+    return ret
+
+
+async def query_db_for_team_context(
+        team: str,
+        year: int
+) -> tuple[dict | None, str | None]:
     """Queries db for team performances for a given year """
     ret={}; error=None
     try:
         response = (
             supabase.rpc(
                 "retrieve_team_context",
-                {"season_year": year,}
+                {
+                    "season_year": year,
+                    "team" : team,
+                }
             )
             .execute()
         )
 
         if response.data:
-            for row in response.data:
-                school=row["ath_team"]; gender=row["ath_gender"]; event=row["event_type"]
-                stats = row["event_time"], row['event_wind'], row['event_date']
-                ath_year=row['ath_year']
-                id = f"ATH_{row['ath_id']:05d}"
-                name = row['ath_name']
-                
-                # adding school/team
-                if school not in ret:
-                    ret[school] = {
-                        gender: {
-                            event : {
-                                (name, id, ath_year) : [stats]
-                            }
-                        }
-                    }
-
-                # adding gender for team
-                elif gender not in ret[school]:
-                    ret[school][gender] = {
-                        event : {
-                            (name, id, ath_year) : [stats]
-                        }
-                    }
-                
-                # adding event for team
-                elif event not in ret[school][gender]:
-                    ret[school][gender][event] = {(name, id, ath_year) : [stats]}
-
-                # adding athlete to event
-                elif name not in ret[school][gender][event]:
-                    ret[school][gender][event][(name, id, ath_year)] = [stats]
-                
-                else:
-                    ret[school][gender][event][(name, id, ath_year)].append(stats)
+            ret = _parse_context(response.data)
 
     except Exception as e:
         error = f"ERROR calling RETRIEVE_TEAM_CONTEXT(): {e}"
 
     return ret, error
+
+
+async def query_db_for_opponent_context_agg(
+        exclude_team: str,
+        year: int
+) -> tuple[dict | None, str | None]:
+    """Queries db for opponent team's context aggregated b"""
+    ret={}; error=None
+    try:
+        response = (
+            supabase.rpc(
+                "retrieve_opponent_context_agg",
+                {
+                    "season_year" : year,
+                    "exclude_team" : exclude_team
+                }
+            )
+            .execute()
+        )
+
+        if response.data:
+            ret = _parse_context(response.data)
+
+    except Exception as e:
+        error = f"ERROR calling RETRIEVE_OPPONENT_CONTEXT_AGG(): {e}"
+    
+    return ret, error
+
 
 async def query_db_for_conference_context(year: int) -> tuple[dict | None, str | None]:
     """Queries db for actual conference entries (ground truth)"""
@@ -163,6 +202,7 @@ async def query_db_for_conference_context(year: int) -> tuple[dict | None, str |
         error = f"ERROR calling RETRIEVE_CONFERENCE_CONTEXT(): {e}"
     
     return ret, error
+
 # ---------------------------------------------------------------------------- #
 #                                 API Endpoint                                 #
 # ---------------------------------------------------------------------------- #
@@ -193,6 +233,7 @@ async def generate_roster_endpoint(request: RosterRequest) -> dict:
         "reasoning": reasoning
     }
 
+
 @app.post("/retrieve_context")
 async def retrieve_context_endpoint(request: DBRequest) -> dict:
     """
@@ -216,17 +257,18 @@ async def retrieve_context_endpoint(request: DBRequest) -> dict:
     if error:
         raise HTTPException(status_code = 400, detail = error)
     
-    
     # Build team and meet context from database
-    # Also trim future dates based on input meet or date
-    team_data, error = await query_db_for_team_context(year_input)
+    team_data, error = await query_db_for_team_context(team_input, year_input)
     if error:
         raise HTTPException(status_code = 500, detail = error)
-    
     if len(team_data.keys()) == 0:
         raise HTTPException(status_code = 500, detail = "Data for year not found")
     if not (team_input in team_data.keys()):
         raise HTTPException(status_code = 500, detail = "Data for team not found")
+
+    opponent_data, error = await query_db_for_opponent_context_agg(team_input, year_input)
+    if error:
+        raise HTTPException(status_code = 500, detail = error)
     
     # ~ print("Team Data Got: ")
     # ~ temp = team_data
@@ -253,9 +295,10 @@ async def retrieve_context_endpoint(request: DBRequest) -> dict:
             # ~ break
 
     
-    
+    combined = opponent_data
+    combined[team_input] = team_data[team_input]
     # Return the successful response as a single JSON object
     return {
         # ~ "team_data": single_team_data,
-        "pre_conference_data": team_data
+        "pre_conference_data": combined
     }

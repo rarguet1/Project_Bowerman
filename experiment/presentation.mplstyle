@@ -1,0 +1,53 @@
+# color cycle
+axes.prop_cycle : cycler('color', ['0C5DA5', '00B945', 'FF9500', '56B4E9', 'FF2C00', '845B97', 'ff1997ff', '474747', '9e9e9e'])
+
+# default fig params
+figure.figsize : 3.5, 3
+figure.facecolor : white
+figure.edgecolor : white
+figure.titleweight : normal
+figure.titlesize : x-large
+figure.constrained_layout.use : true
+
+# axes
+axes.edgecolor : black
+axes.labelcolor : black
+
+# x axis
+xtick.direction : in
+xtick.major.size : 3
+xtick.major.width : 1.0
+xtick.minor.size : 1.5
+xtick.minor.width : 0.5
+xtick.minor.visible : True
+xtick.top : True
+
+# y axis
+ytick.direction : in
+ytick.major.size : 3
+ytick.major.width : 0.5
+ytick.minor.size : 1.5
+ytick.minor.width : 0.5
+ytick.minor.visible : True
+ytick.right : True
+
+# Set line widths
+axes.linewidth : 0.5
+grid.linewidth : 0.5
+lines.linewidth : 2
+
+# legend
+legend.frameon : True
+legend.fancybox : False
+legend.framealpha : 0.8
+legend.edgecolor : 0.8 
+
+# font
+font.family : serif
+font.size : 10
+axes.labelsize : 10
+axes.titlesize : 11
+xtick.labelsize : 9
+ytick.labelsize : 9
+legend.fontsize : 9
+mathtext.fontset : dejavuserif

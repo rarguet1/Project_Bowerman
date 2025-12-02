@@ -1,6 +1,8 @@
 """Script to greedily select roster entries"""
 from __future__ import annotations
 
+import asyncio
+
 from utils import (
     save_results,
     retrieve_event_performances,
@@ -88,6 +90,4 @@ async def build_greedy_roster() -> None:
         )
 
 if __name__ == "__main__":
-    import asyncio
-    # Run the main async function
     asyncio.run(build_greedy_roster())

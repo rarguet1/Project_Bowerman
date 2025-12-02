@@ -50,14 +50,6 @@ def save_data(
     df.to_parquet(dest_dir / f"performances_{idx:06d}.parquet")
 
 
-def peeking_at_data(data: dict) -> None:
-    """asdf"""
-    look_thru = data['100m']
-    for i, field in enumerate(look_thru):
-        print(f"Entry {i}:\n date: {datetime.strptime(field['meet_date'], '%b %d, %Y').date()}")
-        #print(f"Entry {i}:\n{field}")
-
-
 def performances_norm_df_format(
         data: dict,
         school: str | None = None,

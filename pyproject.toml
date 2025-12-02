@@ -9,6 +9,7 @@ dependencies = [
     "google-genai>=1.47.0",
     "groq>=0.36.0",
     "ipython>=8.18.1",
+    "matplotlib>=3.9.4",
     "mistral>=20.1.0",
     "mistralai>=1.9.11",
     "openai>=2.8.1",

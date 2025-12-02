@@ -19,3 +19,6 @@ CREATE TABLE PERFORMANCES (
 	CONSTRAINT FK_ATHLETE_ID FOREIGN KEY (ATHLETE_ID) REFERENCES ATHLETES (ATHLETE_ID),
 	PRIMARY KEY (PERFORMANCE_ID)
 );
+
+CREATE INDEX idx_perf_year_event_time
+ON performances (meet_date, event_class, time, athlete_id);

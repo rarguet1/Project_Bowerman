@@ -13,20 +13,21 @@ wheels/
 # Project-related
 *.json
 *.parquet
+*.log
+debug_*.py
+*_log.txt
 normalized/
 results/
-debug_ghost_id.py
-.gitignore
-.gitignore
+
 gemini-2.0-flash-lite_logs.txt
 gemini-2.5-flash_logs.txt
 gemini-2.5-flash-light_logs.txt
-.gitignore
-debug_missing_data.py
 gemini-2.5-pro_logs.txt
 gemini-2.5-flash_lite_logs.txt
-.gitignore
 gemini-3-pro-preview_logs.txt
 gpt-5-mini.log
 gpt-5-nano.log
 gemini-2.0-flash.log
+
+# mac
+.DS_Store
