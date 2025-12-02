@@ -19,15 +19,5 @@ debug_*.py
 normalized/
 results/
 
-gemini-2.0-flash-lite_logs.txt
-gemini-2.5-flash_logs.txt
-gemini-2.5-flash-light_logs.txt
-gemini-2.5-pro_logs.txt
-gemini-2.5-flash_lite_logs.txt
-gemini-3-pro-preview_logs.txt
-gpt-5-mini.log
-gpt-5-nano.log
-gemini-2.0-flash.log
-
 # mac
 .DS_Store
