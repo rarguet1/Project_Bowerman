@@ -148,7 +148,7 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     Athletes are limited to 4 events during a meet but commonly run multiple events.
     Explicitly consider everyone's season performances including your athletes and opposing athletes in the conference and how they may perform against each other.
     Note that the same athlete may appear in multiple event lists.
-    You are able to enter as many athletes in an event as you want but consider that there are costs involved with transporting and housing athletes at the conference meet, so athletes that are extremely unlikely to score points should be left at home.
+    You are able to enter as many athletes in an event as you want.
     YOUR OUTPUT MUST BE A SINGLE, VALID JSON OBJECT with TWO keys:
 
     1.  "reasoning": A markdown-formatted string. Explain your high-level 
