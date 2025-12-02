@@ -79,14 +79,16 @@ async def build_greedy_roster() -> None:
             team=entry['school'],
             year=entry['season_year'],
             prefix='greedy',
-            gender="M"
+            gender="M",
+            subfolder="greedy"
         )
         save_results(
             data=womens_results,
             team=entry['school'],
             year=entry['season_year'],
             prefix='greedy',
-            gender="F"
+            gender="F",
+            subfolder="greedy"
         )
 
 if __name__ == "__main__":
