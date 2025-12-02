@@ -1,6 +1,6 @@
 """
 Script to evaluate Roster Generations for ALL models found in results folder.
-UPDATED: Added F1 Score, Jaccard Index, and Hallucination Rate.
+UPDATED: Includes Greedy Baseline evaluation.
 """
 import asyncio
 import os
@@ -100,7 +100,9 @@ def load_results(filepath: str, format_type: str, id_map: dict) -> tuple[set, in
 
 async def run_evaluation():
     base_dir = "experiment/results"
-    model_folders = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d)) and "gemini" in d]
+    # Find all model folders, including greedy
+    model_folders = [d for d in os.listdir(base_dir) 
+                     if os.path.isdir(os.path.join(base_dir, d)) and ("gemini" in d or "greedy" in d)]
     
     print(f"Found {len(model_folders)} models to evaluate.")
     
@@ -122,10 +124,15 @@ async def run_evaluation():
                 gt_set = await fetch_ground_truth(year, team, gender)
                 if not gt_set: continue
 
-                llm_path = f"{base_dir}/{model_name}/llm_gemini_{team}_{year}_{gender}_results.parquet"
-                greedy_path = f"{base_dir}/{model_name}/greedy_{team}_{year}_{gender}_results.parquet"
+                # Determine path and format based on model name
+                if model_name == "greedy":
+                    file_path = f"{base_dir}/{model_name}/greedy_{team}_{year}_{gender}_results.parquet"
+                    fmt = "greedy"
+                else:
+                    file_path = f"{base_dir}/{model_name}/llm_gemini_{team}_{year}_{gender}_results.parquet"
+                    fmt = "llm"
 
-                pred_set, ghost_count = load_results(llm_path, "llm", year_maps[year])
+                pred_set, ghost_count = load_results(file_path, fmt, year_maps[year])
                 
                 if pred_set is None: continue
 
@@ -167,7 +174,7 @@ async def run_evaluation():
                     "Model": model_name,
                     "Recall": recall, 
                     "Precision": precision, 
-                    "F1_Score": f1_score,         
+                    "F1_Score": f1_score,          
                     "Jaccard_Index": jaccard,      
                     "Hallucination_Rate": hallucination_rate, 
                     "TP": tp, 
