@@ -15,8 +15,6 @@ from supabase import create_client, Client
 
 # Add parent directory to path to find 'backend' folder
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Import from backend
 from backend import llm_strategy
 from backend import api
 from experiment.utils import save_results, get_available_years_teams
@@ -30,7 +28,7 @@ PROVIDER = os.environ.get("LLM_PROVIDER", "gemini")
 
 if PROVIDER == "openai":
     current_model = os.environ.get("OPENAI_MODEL", "gpt-4o")
-    DELAY_BETWEEN_CALLS = 1 # 1s is polite
+    DELAY_BETWEEN_CALLS = 1 
     MAX_REQUESTS_PER_RUN = 1000
     
 elif PROVIDER == "gemini":
@@ -67,10 +65,10 @@ else:
 RESULTS_SUBFOLDER = current_model 
 
 MEET_CONTEXT_TEMPLATE = (
-    "You are the head track and field coach of {team} and it is time for the "
-    "America East Track and Field Conference Championships. Enter your athletes "
+    "You are the head track and field coach of {team} and it is time for the"
+    "America East Track and Field Conference Championships. Enter your female and male athletes"
     "in each event in a way that maximizes points scored against the rest of "
-    "the teams in the conference."
+    " the teams in the conference. Enter as many people in an event as you want, even if they aren’t outright scoring threats."
 )
 
 # ---------------------------- Data Fetching ---------------------------- #
@@ -93,8 +91,6 @@ async def fetch_team_context(year: int) -> dict:
                 stats = row["event_time"], row['event_wind'], row['event_date']
                 ath_year = row['ath_year']
                 name = f"ATH_{row['ath_id']:05d}"
-                
-                # Convert tuple key to string for JSON compatibility
                 key = f"{name} ({ath_year})" 
                 
                 if school not in ret: ret[school] = {}

@@ -70,7 +70,7 @@ def _parse_context(data: list[dict]) -> dict:
     """Helper to parse db team context to format"""
     ret = {}
     for row in data:
-        stats = row["event_time"], row['event_wind'], row['event_date']
+        stats = row["event_time"], row['event_date']#, row['event_wind'] 
         school=row["ath_team"]; gender=row["ath_gender"]; event=row["event_type"]
         name = row['ath_name']; ath_year=row['ath_year']; id = f"ATH_{row['ath_id']:05d}"
         key = f"{id} ({ath_year})"
