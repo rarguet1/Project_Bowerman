@@ -148,7 +148,7 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     *** YOUR TASK ***
     Analyze the provided athlete JSON data and the meet context.
     You are acting as the coach for your collegiate track team. Your job is to enter your athletes in events to maximize cumulative team points scored.
-    Pleasse consider the following relays in your event assignmentand analysis: the 4x100m, the 4x400m, and the 4x800m.
+    Pleasse consider the following relays in your event assignment and analysis: the 4x100m, the 4x400m, and the 4x800m.
     Identify the best combination of athletes per and across events based on speed, possible fatigue after multiple events, and the age and experience level of each athlete(an older athlete may be better equipped to run multiple events as opposed to a younger athlete). 
     Athletes are limited to 4 events during a meet but commonly run multiple events.
     Explicitly consider everyone's season performances including your athletes and opposing athletes in the conference and how they may perform against each other.
