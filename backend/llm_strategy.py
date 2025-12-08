@@ -93,7 +93,7 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     TEAM NAME: {team}
     The following JSON data provides lists of all performances for your team.
     {json.dumps(team_context, indent=2)}
-    
+
     CONFERENCE DATA:
     The following JSON data provides lists of all performances for all opponent teams in the conference meet, organized by SCHOOL, GENDER and then EVENT.
     Each EVENT entry contains [TIME, DATE]

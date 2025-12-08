@@ -68,7 +68,8 @@ MEET_CONTEXT_TEMPLATE = (
     "You are the head track and field coach of {team} and it is time for the"
     "America East Track and Field Conference Championships. Enter your female and male athletes"
     "in each event in a way that maximizes points scored against the rest of "
-    " the teams in the conference. Enter as many people in an event as you want, even if they aren’t outright scoring threats."
+    " the teams in the conference. Enter as many athletes in an event as you want, even if they aren’t outright scoring threats."
+    "Though, entering more than five athletes for an event is rare."
 )
 
 # ---------------------------- Data Fetching ---------------------------- #
