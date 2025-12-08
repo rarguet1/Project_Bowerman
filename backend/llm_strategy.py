@@ -96,15 +96,15 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     
     CONFERENCE DATA:
     The following JSON data provides lists of all performances for all opponent teams in the conference meet, organized by SCHOOL, GENDER and then EVENT.
-    Each EVENT entry contains [TIME, WINDSPEED, PERFORMANCE DATE]
+    Each EVENT entry contains [TIME, DATE]
     All athletes that are not in your specified school are competitors.
     {json.dumps(conference_data, indent=2)}
 
     MEET SCHEDULE:
     OUTDOOR AMERICA EAST TRACK AND FIELD CHAMPIONSHIPS
     SCHEDULE OF EVENTS
+    
     DAY 1
-
     1:00 p.m 		Women's 1500 Meter 			        Trials
     1:30 p.m. 		Men's 1500 Meter 			        Trials
     2:00 p.m.		Women's 100 Meter Hurdles	        Trials
