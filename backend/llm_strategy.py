@@ -90,19 +90,24 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     MEET CONTEXT:
     {meet_context}
     
-    TEAM NAME: {team}
-    The following JSON data provides lists of all performances for your team.
-    {json.dumps(team_context, indent=2)}
+    TEAM NAME: 
+    {team}
 
-    CONFERENCE DATA:
-    The following JSON data provides lists of all performances for all opponent teams in the conference meet, organized by SCHOOL, GENDER and then EVENT.
-    Each EVENT entry contains [TIME, DATE]
-    All athletes that are not in your specified school are competitors.
+    TEAM DATA (JSON):
+    - Organized by SCHOOL > GENDER > EVENT
+    - EACH EVENT ENTRY For an athlete: [TIME, WINDSPEED, DATE]
+    - All performances for your team this season:
+    {json.dumps(team_context, indent=2)}
+    
+    CONFERENCE DATA (JSON):
+    - Same structure as TEAM DATA.
+    - All athletes are here are opponents
+    - The performances provided are your opponents best performances
+    - Use this data to estimate conference rankings and scoring potential:
     {json.dumps(conference_data, indent=2)}
 
     MEET SCHEDULE:
-    OUTDOOR AMERICA EAST TRACK AND FIELD CHAMPIONSHIPS
-    SCHEDULE OF EVENTS
+    OUTDOOR AMERICA EAST TRACK AND FIELD CHAMPIONSHIPS SCHEDULE OF EVENTS
     
     DAY 1
     1:00 p.m 		Women's 1500 Meter 			        Trials
@@ -144,16 +149,23 @@ def _build_system_prompt(team: str, athlete_data: dict, meet_context: str) -> tu
     2:05 p.m.		Men's	5000 Meter				Final
 
 
-
     *** YOUR TASK ***
-    Analyze the provided athlete JSON data and the meet context.
-    You are acting as the coach for your collegiate track team. Your job is to enter your athletes in events to maximize cumulative team points scored.
-    Pleasse consider the following relays in your event assignment and analysis: the 4x100m, the 4x400m, and the 4x800m.
-    Identify the best combination of athletes per and across events based on speed, possible fatigue after multiple events, and the age and experience level of each athlete(an older athlete may be better equipped to run multiple events as opposed to a younger athlete). 
-    Athletes are limited to 4 events during a meet but commonly run multiple events.
-    Explicitly consider everyone's season performances including your athletes and opposing athletes in the conference and how they may perform against each other.
-    Note that the same athlete may appear in multiple event lists.
-    You are able to enter as many athletes in an event as you want but entering over 5 athletes is uncommon.
+    1. You are acting as the coach for your collegiate track team {team}. Your job is to enter your athletes in events to maximize cumulative team points scored.
+    2. Analyze the provided Team Data JSON data and Conference Data JSON.
+    
+    *** TASK INSTRUCTIONS/NOTES ***
+    1. Do not consider relays such as the 4x100m or the 4x400m or the 4x800m in your analysis.
+    2. Identify the best combination of athletes per and across events based on speed, possible fatigue after multiple events, and the age and experience level of each athlete(an older athlete may be better equipped to run multiple events as opposed to a younger athlete). 
+    3. An Athletes fastest running time is the most significant indicator of scoring potential
+    4. If wind data is available, use it to contextualize an athlete's time (postive wind means wind helped their time, negative means it slowed the athlete down)
+    5. Date is used to show recency of performances. 
+    6. Athletes are limited to 4 events, athletes commonly run multiple events.
+    7. Explicitly consider everyone's season performances including your athletes and opposing athletes in the conference and how they may perform against each other.
+    8. Note that the same athlete may appear in multiple event lists.
+    9. You are able to enter as many athletes in an event as you want.
+    
+    
+    *** OUTPUT INSTRUCTIONS ***
     YOUR OUTPUT MUST BE A SINGLE, VALID JSON OBJECT with TWO keys:
 
     1.  "reasoning": A markdown-formatted string. Explain your high-level 

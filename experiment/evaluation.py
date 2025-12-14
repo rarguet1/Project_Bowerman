@@ -80,16 +80,17 @@ def load_results(filepath: str, format_type: str, id_map: dict) -> tuple[set, in
             if name_col and event_col:
                 for _, row in df.iterrows():
                     raw_str = str(row[name_col])
+                    real_name = raw_str.split("(")[0][:-1]
                     if "ATH_" in raw_str:
                         raw_id = raw_str.split()[0]
                         real_name = id_map.get(raw_id)
                         
-                        if real_name:
-                            event_raw = row[event_col]
-                            events = event_raw if isinstance(event_raw, list) else [e.strip() for e in str(event_raw).split(',')]
-                            for e in events: entries.add((real_name, e))
-                        else:
-                            hallucinations += 1
+                    if real_name:
+                        event_raw = row[event_col]
+                        events = event_raw if isinstance(event_raw, list) else [e.strip() for e in str(event_raw).split(',')]
+                        for e in events: entries.add((real_name, e))
+                    else:
+                        hallucinations += 1
                             
     except Exception: pass
     return entries, hallucinations
