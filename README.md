@@ -2,9 +2,44 @@
 # 🏃‍♂️ Project Bowerman: Optimal Athlete Entry Predictor
 This project explores the reasoning capabilities of large language models to generate strategies for assigning athletes to track events to maximize team performance. It investigates whether language models can perform the required reasoning tasks, such as planning and optimization, using natural language and historic information as input.
 
-This project is split into two parts:
-- frontend/app.py: The Streamlit frontend.
-- backend/api.py: The FastAPI backend (which contains the placeholder LLM logic).
+This project is structured as follows:
+```
+├── backend/
+│   ├── api.py
+│   └── llm_strategy.py
+├── data/
+│   ├── ingest.py
+│   ├── nomalize.py
+│   ├── auto_ingest.sh
+│   ├── db_scripts/
+│   │       ├── ingest.sql
+│   │       ├── retrievals.sql
+│   │       ├── tables.sql
+│   │       └── drop_tables.sql
+├── experiment/
+|   ├── results/
+│   ├── utils.py
+│   ├── greedy.py
+│   ├── run_llm.py
+│   └── evaluation.py
+├── frontend/
+│   └── app.py
+├── images/
+├── uv.lock
+├── pyproject.toml
+├── .gitignore
+├── README.md
+└── LICENSE
+```
+### Directory Descriptions
+- `frontend/app.py` The Streamlit frontend.
+- `backend/` The FastAPI backend (which contains the LLM logic and data api).
+- `data/` This directory contains the logic for the database and bulk ingestion
+- `experiment/` This directory contains the experiment logic. 
+    - To get the results for greedy baseline run `python experiment/greedy.py`. 
+    - To run the LLM experiments you can use the example command for gemini-2.0-flash below:
+    `LLM_PROVIDER=gemini GEMINI_MODEL=gemini-2.0-flash nohup python -u experiment/run_llm.py > gemini-2.0-flash.log 2>&1 &`
+    - To get an evaluation results please run `python experiment/evaluation.py`
 
 You must run both services simultaneously in separate terminal windows for the application to work.
 
